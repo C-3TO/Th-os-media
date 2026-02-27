@@ -78,12 +78,15 @@ music:function(q){
   var SP_ID="4e533f6bbadc435d9a65030c70f54a8e",SP_SEC="e8ccb7fd170a4b89bd46d9d16c7c2a13";
   function getSpToken(){
     if(window._spToken&&window._spTokenExp>Date.now())return Promise.resolve(window._spToken);
-    return fetch("https://accounts.spotify.com/api/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded","Authorization":"Basic "+btoa(SP_ID+":"+SP_SEC)},body:"grant_type=client_credentials"}).then(function(r){return r.json()}).then(function(d){window._spToken=d.access_token;window._spTokenExp=Date.now()+(d.expires_in-60)*1000;return d.access_token})}
+    return fetch("https://accounts.spotify.com/api/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded","Authorization":"Basic "+btoa(SP_ID+":"+SP_SEC)},body:"grant_type=client_credentials"}).then(function(r){return r.json()}).then(function(d){if(!d.access_token)throw new Error("no token");window._spToken=d.access_token;window._spTokenExp=Date.now()+(d.expires_in-60)*1000;return d.access_token})}
+  function lastFmFallback(q){
+    return fetch("https://ws.audioscrobbler.com/2.0/?method=album.search&album="+encodeURIComponent(q)+"&api_key=b25b959554ed76058ac220b7b2e0a026&format=json&limit=16").then(function(r){return r.json()}).then(function(d){var albums=(d.results&&d.results.albummatches&&d.results.albummatches.album)||[];return albums.map(function(m){var img=m.image&&m.image.length>2?m.image[m.image.length-1]["#text"]:"";var hasImg=img&&img.indexOf("2a96cbd8b46e442fc41c2b86b821562f")===-1;return{id:"m-"+encodeURIComponent(m.artist+"-"+m.name),tp:"music",ti:m.name,yr:"",po:hasImg?img:null,bd:hasImg?img:null,ov:"",vt:null,au:m.artist}})})}
   return getSpToken().then(function(tk){
-    return fetch("https://api.spotify.com/v1/search?q="+encodeURIComponent(q)+"&type=album&limit=16&market=FR",{headers:{"Authorization":"Bearer "+tk}}).then(function(r){return r.json()}).then(function(d){
+    return fetch("https://api.spotify.com/v1/search?q="+encodeURIComponent(q)+"&type=album&limit=16&market=FR",{headers:{"Authorization":"Bearer "+tk}}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){
       return(d.albums&&d.albums.items||[]).map(function(a){
         var img=a.images&&a.images.length?a.images[0].url:null;
-        return{id:"sp-"+a.id,tp:"music",ti:a.name,yr:(a.release_date||"").slice(0,4),po:img,bd:img,ov:"",vt:null,au:a.artists.map(function(x){return x.name}).join(", "),spId:a.id}})})})},
+        return{id:"sp-"+a.id,tp:"music",ti:a.name,yr:(a.release_date||"").slice(0,4),po:img,bd:img,ov:"",vt:null,au:a.artists.map(function(x){return x.name}).join(", "),spId:a.id}})})
+  }).catch(function(err){console.warn("Spotify failed, using LastFM:",err);return lastFmFallback(q)})},
 podcast:function(q){return fetch("https://itunes.apple.com/search?term="+encodeURIComponent(q)+"&media=podcast&limit=16").then(function(r){return r.json()}).then(function(d){return(d.results||[]).map(function(m){return{id:"p"+m.trackId,tp:"podcast",ti:m.trackName,yr:(m.releaseDate||"").slice(0,4),po:m.artworkUrl600||m.artworkUrl100,bd:null,ov:"",vt:null,au:m.artistName}})})}
 };
 </script>
@@ -343,6 +346,34 @@ ap(info,h("div",{s:{fontSize:"12px",color:"var(--tx3)",marginTop:"3px"},tx:(it.y
 if(it.ov&&!(D().cfg&&D().cfg.spoilerFree))ap(info,h("p",{s:{marginTop:"10px",fontSize:"13px",color:"var(--tx2)",lineHeight:"1.6",maxWidth:"460px"},tx:it.ov.length>260?it.ov.slice(0,260)+"...":it.ov}));
 var wlL=ct.w||"Watchlist";
 ap(info,h("button",{s:{marginTop:"12px",padding:"7px 16px",borderRadius:"4px",fontSize:"12px",fontWeight:"500",background:wl?ct.n+"12":"transparent",border:"1px solid "+(wl?ct.n+"30":"var(--bc)"),color:wl?ct.n:"var(--tx3)"},tx:wl?"✓ "+wlL:"+ "+wlL,on:{click:function(){if(wl)delete S.d.w[it.id];else S.d.w[it.id]={it:it,dt:new Date().toISOString()};SV();rDet();rSB()}}}));
+// Streaming platforms
+var provBox=h("div",{s:{marginTop:"10px",display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}});
+ap(info,provBox);
+if(it.tp==="film"||it.tp==="series"){
+  var tmdbId=it.id.replace(/^[fs]/,"");
+  var epType=it.tp==="film"?"movie":"tv";
+  fetch("https://api.themoviedb.org/3/"+epType+"/"+tmdbId+"/watch/providers?api_key="+TK).then(function(r){return r.json()}).then(function(d){
+    var fr=d.results&&d.results.FR;if(!fr)return;
+    var providers=(fr.flatrate||[]).slice(0,5);
+    if(!providers.length)return;
+    ap(provBox,h("span",{s:{fontSize:"10px",fontFamily:"var(--mono)",letterSpacing:"1px",color:"var(--tx3)",marginRight:"2px"},tx:"DISPO"}));
+    providers.forEach(function(p){
+      var logo=h("img",{src:TI+"/w45"+p.logo_path,title:p.provider_name,s:{width:"24px",height:"24px",borderRadius:"4px",objectFit:"cover"}});
+      ap(provBox,logo);
+    });
+  }).catch(function(){});
+}
+if(it.tp==="anime"){
+  var malId=it.id.replace(/^a/,"");
+  fetch("https://api.jikan.moe/v4/anime/"+malId+"/streaming").then(function(r){return r.json()}).then(function(d){
+    var streams=(d.data||[]).slice(0,5);
+    if(!streams.length)return;
+    ap(provBox,h("span",{s:{fontSize:"10px",fontFamily:"var(--mono)",letterSpacing:"1px",color:"var(--tx3)",marginRight:"2px"},tx:"DISPO"}));
+    streams.forEach(function(s){
+      ap(provBox,h("a",{href:s.url,target:"_blank",s:{fontSize:"11px",padding:"3px 8px",borderRadius:"3px",background:"var(--bg3)",border:"1px solid var(--bc)",color:ct.n,textDecoration:"none"},tx:s.name}));
+    });
+  }).catch(function(){});
+}
 ap(cnt,info);ap(hero,cnt);ap(m,hero);
 // Auto media section
 var mediaBox=h("div",{s:{marginBottom:"14px",borderRadius:"6px",overflow:"hidden",display:"none"}});
