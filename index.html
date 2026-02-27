@@ -58,6 +58,8 @@ podcast:function(q){return fetch("https://itunes.apple.com/search?term="+encodeU
 <script>
 // Card
 function mkC(it,dl){var d=D(),ct=C[it.tp],rt=d.r[it.id],wl=!!d.w[it.id];
+if(rt&&!rt.sc&&rt.score)rt.sc=rt.score;
+if(rt&&!rt.it&&rt.item){rt.it=rt.item;rt.rv=rt.review;rt.dt=rt.date}
 var el=h("div",{cl:"card anim",s:{animationDelay:dl+"ms"},on:{click:function(){S.sel=it;go("detail")},mouseenter:function(){this.style.transform="translateY(-3px)"},mouseleave:function(){this.style.transform=""}}});
 var po=h("div",{s:{position:"relative",paddingBottom:"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
 if(it.po)ap(po,h("img",{src:it.po,loading:"lazy",s:{position:"absolute",inset:"0",width:"100%",height:"100%",objectFit:"cover"}}));
@@ -242,6 +244,69 @@ if(it.ov&&!(D().cfg&&D().cfg.spoilerFree))ap(info,h("p",{s:{marginTop:"10px",fon
 var wlL=ct.w||"Watchlist";
 ap(info,h("button",{s:{marginTop:"12px",padding:"7px 16px",borderRadius:"4px",fontSize:"12px",fontWeight:"500",background:wl?ct.n+"12":"transparent",border:"1px solid "+(wl?ct.n+"30":"var(--bc)"),color:wl?ct.n:"var(--tx3)"},tx:wl?"✓ "+wlL:"+ "+wlL,on:{click:function(){if(wl)delete S.d.w[it.id];else S.d.w[it.id]={it:it,dt:new Date().toISOString()};SV();rDet();rSB()}}}));
 ap(cnt,info);ap(hero,cnt);ap(m,hero);
+// Auto media section
+var mediaBox=h("div",{cl:"pnl anim",s:{animationDelay:"50ms",marginBottom:"14px",padding:"0",overflow:"hidden",display:"none"}});
+var mediaLoading=h("div",{s:{padding:"14px 18px",fontSize:"12px",color:"var(--tx3)"},tx:"⏳ Recherche de contenu..."});
+ap(mediaBox,mediaLoading);ap(m,mediaBox);
+(function fetchMedia(){
+  var tid=it.id.replace(/^[fsagmbp]/,"");
+  if(it.tp==="film"||it.tp==="series"){
+    mediaBox.style.display="block";
+    var ep=it.tp==="film"?"movie":"tv";
+    fetch("https://api.themoviedb.org/3/"+ep+"/"+tid+"/videos?api_key="+TK+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){
+      var vids=d.results||[];var tr=vids.find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||vids.find(function(v){return v.site==="YouTube"});
+      if(!tr){return fetch("https://api.themoviedb.org/3/"+ep+"/"+tid+"/videos?api_key="+TK).then(function(r){return r.json()}).then(function(d2){return(d2.results||[]).find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||(d2.results||[]).find(function(v){return v.site==="YouTube"})})}
+      return tr;
+    }).then(function(tr){
+      mediaBox.innerHTML="";
+      if(tr&&tr.key){
+        var ifr=h("iframe",{src:"https://www.youtube.com/embed/"+tr.key,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",height:"300px",display:"block",borderRadius:"6px"}});
+        ap(mediaBox,ifr);
+      }else{mediaBox.style.display="none"}
+    }).catch(function(){mediaBox.style.display="none"});
+  }
+  else if(it.tp==="anime"){
+    mediaBox.style.display="block";
+    var malId=it.id.replace(/^a/,"");
+    fetch("https://api.jikan.moe/v4/anime/"+malId+"/videos").then(function(r){return r.json()}).then(function(d){
+      mediaBox.innerHTML="";
+      var promos=(d.data&&d.data.promo)||[];
+      var tr=promos[0];
+      if(tr&&tr.trailer&&tr.trailer.youtube_id){
+        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed/"+tr.trailer.youtube_id,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",height:"300px",display:"block",borderRadius:"6px"}}));
+      }else{mediaBox.style.display="none"}
+    }).catch(function(){mediaBox.style.display="none"});
+  }
+  else if(it.tp==="music"){
+    mediaBox.style.display="block";
+    var q=encodeURIComponent((it.au||"")+" "+it.ti);
+    fetch("https://itunes.apple.com/search?term="+q+"&media=music&entity=song&limit=1").then(function(r){return r.json()}).then(function(d){
+      mediaBox.innerHTML="";
+      var song=d.results&&d.results[0];
+      if(song&&song.previewUrl){
+        var row=h("div",{s:{padding:"14px 18px",display:"flex",alignItems:"center",gap:"14px"}});
+        var playBtn=h("button",{s:{width:"40px",height:"40px",borderRadius:"50%",background:ct.n+"15",border:"1px solid "+ct.n+"30",color:ct.n,fontSize:"16px",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:"0"},tx:"▶"});
+        var audio=new Audio(song.previewUrl);var playing=false;
+        playBtn.addEventListener("click",function(){if(playing){audio.pause();playBtn.textContent="▶";playing=false}else{audio.play();playBtn.textContent="⏸";playing=true}});
+        audio.addEventListener("ended",function(){playBtn.textContent="▶";playing=false});
+        var txt=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:song.trackName}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:song.artistName+" · Extrait 30s"}));
+        ap(row,playBtn,txt);ap(mediaBox,row);
+      }else{mediaBox.style.display="none"}
+    }).catch(function(){mediaBox.style.display="none"});
+  }
+  else if(it.tp==="game"){
+    mediaBox.style.display="block";
+    var gid=it.id.replace(/^g/,"");
+    fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(d){
+      mediaBox.innerHTML="";
+      var clip=d.results&&d.results[0];
+      if(clip&&clip.data&&clip.data.max){
+        ap(mediaBox,h("video",{src:clip.data.max,controls:"true",s:{width:"100%",height:"300px",display:"block",borderRadius:"6px",background:"#000"}}));
+      }else{mediaBox.style.display="none"}
+    }).catch(function(){mediaBox.style.display="none"});
+  }
+  else{mediaBox.style.display="none"}
+})();
 // Panels
 var panels=h("div",{s:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}});
 // Rating
@@ -252,7 +317,6 @@ var ri=h("textarea",{placeholder:"Mini-review...",rows:"3",s:{resize:"vertical",
 var lnk=h("input",{type:"text",placeholder:"Lien (trailer, extrait, article...)",value:ex?ex.lk||"":"",s:{fontSize:"12px",marginTop:"8px",padding:"8px 12px"},on:{input:function(){autoSave()}}});ap(rp,lnk);
 var lnkRow=h("div",{s:{display:"flex",gap:"6px",alignItems:"center",marginTop:"6px"}});
 if(ex&&ex.lk){ap(lnkRow,h("a",{href:ex.lk,target:"_blank",s:{display:"inline-flex",alignItems:"center",gap:"5px",fontSize:"12px",color:ct.n,textDecoration:"none",padding:"5px 12px",borderRadius:"4px",background:ct.n+"0a",border:"1px solid "+ct.n+"18"},tx:"▶ Ouvrir le lien"}))}
-if((it.tp==="film"||it.tp==="series")&&!lnk.value){var trlBtn=h("button",{s:{fontSize:"11px",padding:"5px 12px",borderRadius:"4px",background:"var(--bg3)",border:"1px solid var(--bc)",color:"var(--tx3)"},tx:"🎬 Chercher trailer",on:{click:function(){trlBtn.textContent="⏳ Recherche...";trlBtn.disabled=true;var tmdbId=it.id.replace(/^[fs]/,"");var ep=it.tp==="film"?"movie":"tv";fetch("https://api.themoviedb.org/3/"+ep+"/"+tmdbId+"/videos?api_key="+TK+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){var vids=d.results||[];var trailer=vids.find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||vids.find(function(v){return v.site==="YouTube"});if(trailer){lnk.value="https://www.youtube.com/watch?v="+trailer.key;autoSave();rDet()}else{return fetch("https://api.themoviedb.org/3/"+ep+"/"+tmdbId+"/videos?api_key="+TK).then(function(r){return r.json()}).then(function(d2){var v2=d2.results||[];var t2=v2.find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||v2.find(function(v){return v.site==="YouTube"});if(t2){lnk.value="https://www.youtube.com/watch?v="+t2.key;autoSave();rDet()}else{trlBtn.textContent="✕ Pas trouvé";trlBtn.style.color="#ff6b6b"}})}}).catch(function(){trlBtn.textContent="✕ Erreur";trlBtn.style.color="#ff6b6b"})}}});ap(lnkRow,trlBtn)}
 ap(rp,lnkRow);
 var saveMsg=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"8px",opacity:"0",transition:"opacity .3s"},tx:""});
 function autoSave(){var s=parseInt(si.value);if(isNaN(s)||s<0||s>20)return;S.d.r[it.id]={sc:s,rv:ri.value,lk:lnk.value.trim(),it:it,dt:new Date().toISOString()};if(S.d.w[it.id])delete S.d.w[it.id];SV();saveMsg.textContent="✓ Sauvegardé";saveMsg.style.color="#0fff95";saveMsg.style.opacity="1";clearTimeout(saveMsg._t);saveMsg._t=setTimeout(function(){saveMsg.style.opacity="0"},2000);rSB()}
@@ -368,6 +432,12 @@ function expD(){var b=new Blob([JSON.stringify(S.d,null,2)],{type:"application/j
 function impD(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var p=JSON.parse(ev.target.result);if(p.r||p.ratings){S.d=p;SV();RR()}}catch(e){alert("Fichier invalide")}};r.readAsText(f)}
 // Init
 if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice()};
+// Migrate V4 data format
+(function(){var d=S.d;if(d.ratings&&!d.r){d.r={};d.w=d.watchlist||{};d.t=d.tags||{};d.p=d.presets||DP.slice();
+Object.keys(d.ratings).forEach(function(k){var v=d.ratings[k];d.r[k]={sc:v.score,rv:v.review||"",it:v.item,dt:v.date||"",lk:""}});
+var ow=d.watchlist||{};d.w={};Object.keys(ow).forEach(function(k){var v=ow[k];d.w[k]={it:v.item||v.it,dt:v.date||v.dt||""}});
+delete d.ratings;delete d.watchlist;delete d.tags;delete d.presets;SV()}
+if(d.r){Object.keys(d.r).forEach(function(k){var v=d.r[k];if(v.score!==undefined&&v.sc===undefined){v.sc=v.score;v.rv=v.review||"";v.it=v.item||v.it;v.dt=v.date||v.dt||"";delete v.score;delete v.review;delete v.item;delete v.date}})}})();
 if(S.th==="light")document.body.classList.add("light");
 RR();
 </script>
