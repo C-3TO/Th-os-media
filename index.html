@@ -249,8 +249,13 @@ var rp=h("div",{cl:"pnl anim",s:{animationDelay:"70ms"}});ap(rp,h("div",{cl:"mon
 var si=h("input",{type:"number",min:"0",max:"20",value:ex?String(ex.sc):"",placeholder:"—",s:{width:"68px",fontSize:"22px",textAlign:"center",fontWeight:"600",padding:"6px"},on:{input:function(){autoSave()}}});
 ap(rp,h("div",{s:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}},si,h("span",{s:{fontSize:"13px",color:"var(--tx3)"},tx:"/ 20"})));
 var ri=h("textarea",{placeholder:"Mini-review...",rows:"3",s:{resize:"vertical",fontSize:"13px"},on:{input:function(){autoSave()}}});ri.value=ex?ex.rv||"":"";ap(rp,ri);
+var lnk=h("input",{type:"text",placeholder:"Lien (trailer, extrait, article...)",value:ex?ex.lk||"":"",s:{fontSize:"12px",marginTop:"8px",padding:"8px 12px"},on:{input:function(){autoSave()}}});ap(rp,lnk);
+var lnkRow=h("div",{s:{display:"flex",gap:"6px",alignItems:"center",marginTop:"6px"}});
+if(ex&&ex.lk){ap(lnkRow,h("a",{href:ex.lk,target:"_blank",s:{display:"inline-flex",alignItems:"center",gap:"5px",fontSize:"12px",color:ct.n,textDecoration:"none",padding:"5px 12px",borderRadius:"4px",background:ct.n+"0a",border:"1px solid "+ct.n+"18"},tx:"▶ Ouvrir le lien"}))}
+if((it.tp==="film"||it.tp==="series")&&!lnk.value){var trlBtn=h("button",{s:{fontSize:"11px",padding:"5px 12px",borderRadius:"4px",background:"var(--bg3)",border:"1px solid var(--bc)",color:"var(--tx3)"},tx:"🎬 Chercher trailer",on:{click:function(){trlBtn.textContent="⏳ Recherche...";trlBtn.disabled=true;var tmdbId=it.id.replace(/^[fs]/,"");var ep=it.tp==="film"?"movie":"tv";fetch("https://api.themoviedb.org/3/"+ep+"/"+tmdbId+"/videos?api_key="+TK+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){var vids=d.results||[];var trailer=vids.find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||vids.find(function(v){return v.site==="YouTube"});if(trailer){lnk.value="https://www.youtube.com/watch?v="+trailer.key;autoSave();rDet()}else{return fetch("https://api.themoviedb.org/3/"+ep+"/"+tmdbId+"/videos?api_key="+TK).then(function(r){return r.json()}).then(function(d2){var v2=d2.results||[];var t2=v2.find(function(v){return v.site==="YouTube"&&v.type==="Trailer"})||v2.find(function(v){return v.site==="YouTube"});if(t2){lnk.value="https://www.youtube.com/watch?v="+t2.key;autoSave();rDet()}else{trlBtn.textContent="✕ Pas trouvé";trlBtn.style.color="#ff6b6b"}})}}).catch(function(){trlBtn.textContent="✕ Erreur";trlBtn.style.color="#ff6b6b"})}}});ap(lnkRow,trlBtn)}
+ap(rp,lnkRow);
 var saveMsg=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"8px",opacity:"0",transition:"opacity .3s"},tx:""});
-function autoSave(){var s=parseInt(si.value);if(isNaN(s)||s<0||s>20)return;S.d.r[it.id]={sc:s,rv:ri.value,it:it,dt:new Date().toISOString()};if(S.d.w[it.id])delete S.d.w[it.id];SV();saveMsg.textContent="✓ Sauvegardé";saveMsg.style.color="#0fff95";saveMsg.style.opacity="1";clearTimeout(saveMsg._t);saveMsg._t=setTimeout(function(){saveMsg.style.opacity="0"},2000);rSB()}
+function autoSave(){var s=parseInt(si.value);if(isNaN(s)||s<0||s>20)return;S.d.r[it.id]={sc:s,rv:ri.value,lk:lnk.value.trim(),it:it,dt:new Date().toISOString()};if(S.d.w[it.id])delete S.d.w[it.id];SV();saveMsg.textContent="✓ Sauvegardé";saveMsg.style.color="#0fff95";saveMsg.style.opacity="1";clearTimeout(saveMsg._t);saveMsg._t=setTimeout(function(){saveMsg.style.opacity="0"},2000);rSB()}
 ap(rp,saveMsg);
 var br=h("div",{s:{display:"flex",gap:"8px",marginTop:"6px"}});
 if(ex)ap(br,h("button",{s:{padding:"7px 14px",borderRadius:"4px",fontSize:"12px",background:"transparent",border:"1px solid rgba(255,107,107,.15)",color:"#ff6b6b"},tx:"Supprimer la note",on:{click:function(){var cfg=D().cfg||{};if(cfg.confirmDel!==false){if(!confirm("Supprimer cette note ?"))return}delete S.d.r[it.id];delete S.d.t[it.id];SV();rDet();rSB()}}}));
@@ -282,14 +287,14 @@ ap(thP,thR);
 // Grain toggle
 var gr=d.cfg.grain!==false;
 var grRow=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderTop:"1px solid var(--bc)"}});
-ap(grRow,h("div",{},h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Grain filmique"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Texture subtile sur l'interface"})));
+var grLbl=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Grain filmique"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Texture subtile sur l'interface"}));ap(grRow,grLbl);
 var grBtn=h("button",{s:{width:"42px",height:"24px",borderRadius:"12px",border:"none",background:gr?"#00e5ff":"var(--bg4)",position:"relative",transition:"background .2s"},on:{click:function(){d.cfg.grain=!d.cfg.grain;SV();document.getElementById("gr").style.opacity=d.cfg.grain?"0.015":"0";rSet()}}});
 ap(grBtn,h("div",{s:{width:"18px",height:"18px",borderRadius:"50%",background:"#fff",position:"absolute",top:"3px",left:gr?"21px":"3px",transition:"left .2s"}}));
 ap(grRow,grBtn);ap(thP,grRow);
 // Grid size
 var gs=d.cfg.gridSize||"normal";
 var gsRow=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderTop:"1px solid var(--bc)"}});
-ap(gsRow,h("div",{},h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Taille des cartes"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Grille de la collection"})));
+var gsLbl=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Taille des cartes"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Grille de la collection"}));ap(gsRow,gsLbl);
 var gsR=h("div",{s:{display:"flex",gap:"6px"}});
 ["compact","normal","large"].forEach(function(sz){var a=gs===sz;var lbl=sz==="compact"?"S":sz==="normal"?"M":"L";
 ap(gsR,h("button",{s:{width:"32px",height:"28px",borderRadius:"4px",fontSize:"11px",fontWeight:a?"600":"400",background:a?"#00e5ff15":"transparent",border:"1px solid "+(a?"#00e5ff33":"var(--bc)"),color:a?"#00e5ff":"var(--tx3)"},tx:lbl,on:{click:function(){d.cfg.gridSize=sz;SV();rSet()}}}))});
@@ -297,7 +302,7 @@ ap(gsRow,gsR);ap(thP,gsRow);
 // Animations toggle
 var anm=d.cfg.anim!==false;
 var anRow=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderTop:"1px solid var(--bc)"}});
-ap(anRow,h("div",{},h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Animations"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Transitions et entrées animées"})));
+var anLbl=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Animations"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Transitions et entrées animées"}));ap(anRow,anLbl);
 var anBtn=h("button",{s:{width:"42px",height:"24px",borderRadius:"12px",border:"none",background:anm?"#00e5ff":"var(--bg4)",position:"relative",transition:"background .2s"},on:{click:function(){d.cfg.anim=!d.cfg.anim;SV();rSet()}}});
 ap(anBtn,h("div",{s:{width:"18px",height:"18px",borderRadius:"50%",background:"#fff",position:"absolute",top:"3px",left:anm?"21px":"3px",transition:"left .2s"}}));
 ap(anRow,anBtn);ap(thP,anRow);
@@ -318,14 +323,14 @@ ap(ntP,dsR);
 // Confirm delete
 var cfd=d.cfg.confirmDel!==false;
 var cdRow=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",marginTop:"10px",borderTop:"1px solid var(--bc)"}});
-ap(cdRow,h("div",{},h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Confirmer avant suppression"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Demander confirmation pour supprimer une note"})));
+var cdLbl=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Confirmer avant suppression"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Demander confirmation pour supprimer une note"}));ap(cdRow,cdLbl);
 var cdBtn=h("button",{s:{width:"42px",height:"24px",borderRadius:"12px",border:"none",background:cfd?"#00e5ff":"var(--bg4)",position:"relative",transition:"background .2s"},on:{click:function(){d.cfg.confirmDel=!cfd;SV();rSet()}}});
 ap(cdBtn,h("div",{s:{width:"18px",height:"18px",borderRadius:"50%",background:"#fff",position:"absolute",top:"3px",left:cfd?"21px":"3px",transition:"left .2s"}}));
 ap(cdRow,cdBtn);ap(ntP,cdRow);
 // Spoiler-free mode
 var spf=!!d.cfg.spoilerFree;
 var spRow=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderTop:"1px solid var(--bc)"}});
-ap(spRow,h("div",{},h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Mode anti-spoiler"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Masquer les synopsis dans les fiches"})));
+var spLbl=ap(h("div",{}),h("div",{s:{fontSize:"13px",fontWeight:"500"},tx:"Mode anti-spoiler"}),h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:"Masquer les synopsis dans les fiches"}));ap(spRow,spLbl);
 var spBtn=h("button",{s:{width:"42px",height:"24px",borderRadius:"12px",border:"none",background:spf?"#00e5ff":"var(--bg4)",position:"relative",transition:"background .2s"},on:{click:function(){d.cfg.spoilerFree=!spf;SV();rSet()}}});
 ap(spBtn,h("div",{s:{width:"18px",height:"18px",borderRadius:"50%",background:"#fff",position:"absolute",top:"3px",left:spf?"21px":"3px",transition:"left .2s"}}));
 ap(spRow,spBtn);ap(ntP,spRow);
