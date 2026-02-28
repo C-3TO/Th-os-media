@@ -117,16 +117,26 @@ function syncPull(){
       });
       Object.keys(remote.w).forEach(function(k){if(!local.w[k])local.w[k]=remote.w[k]});
       Object.keys(remote.t||{}).forEach(function(k){if(!local.t[k])local.t[k]=remote.t[k]});
+      // Merge episode ratings
+      if(remote.ep){if(!local.ep)local.ep={};Object.keys(remote.ep).forEach(function(sid){
+        if(!local.ep[sid])local.ep[sid]={};
+        Object.keys(remote.ep[sid]).forEach(function(sn){
+          if(!local.ep[sid][sn])local.ep[sid][sn]={};
+          Object.keys(remote.ep[sid][sn]).forEach(function(en){
+            if(local.ep[sid][sn][en]==null)local.ep[sid][sn][en]=remote.ep[sid][sn][en];
+          });
+        });
+      })}
       S.d._syncTs=remote._syncTs;SV();RR();
       console.log("☁ Merged from cloud");
     }
   }).catch(function(e){console.warn("Sync pull failed:",e)});
 }
-// Pull on load, push every 30s
-syncPull();
-setInterval(function(){if(S.d&&Object.keys(S.d.r||{}).length>0)syncPush()},30000);
+// Pull on load (after local data loaded), push every 30s and on save
 S.d=LD();
 function D(){if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice(),cfg:{},ep:{}};if(!S.d.ep)S.d.ep={};return S.d}
+syncPull();
+setInterval(function(){if(S.d&&Object.keys(S.d.r||{}).length>0)syncPush()},30000);
 // Scroll memory
 var _scrollMem={};
 function go(v){
