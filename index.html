@@ -152,8 +152,7 @@ if(it.ov||it.vt){
   if(it.ov)ap(tip,h("div",{s:{fontSize:"11px",color:"var(--tx2)",lineHeight:"1.4",maxHeight:"60px",overflow:"hidden"},tx:it.ov.length>150?it.ov.slice(0,150)+"...":it.ov}));
   ap(el,tip);
 }
-var isLandscape=it.tp==="game";
-var po=h("div",{s:{position:"relative",paddingBottom:isLandscape?"66%":"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
+var po=h("div",{s:{position:"relative",paddingBottom:"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
 if(it.po)ap(po,h("img",{src:it.po,loading:"lazy",s:{position:"absolute",inset:"0",width:"100%",height:"100%",objectFit:"cover"}}));
 else ap(po,h("div",{s:{position:"absolute",inset:"0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",color:"var(--tx3)"},tx:ct.i}));
 ap(po,h("div",{s:{position:"absolute",bottom:"0",left:"0",right:"0",height:"35%",background:"linear-gradient(transparent,rgba(11,11,15,.85))"}}));
@@ -449,8 +448,8 @@ ap(bd,h("div",{s:{position:"absolute",inset:"0",background:"linear-gradient(tran
 ap(bd,h("div",{s:{position:"absolute",bottom:"0",left:"0",right:"0",height:"1px",background:"linear-gradient(90deg,transparent,"+ct.n+"45,transparent)"}}));
 ap(hero,bd);
 var cnt=h("div",{s:{position:"relative",marginTop:"-80px",padding:"0 22px 22px",display:"flex",gap:"22px"}});
-if(it.po){var poW=it.tp==="game"?"180px":"125px";var poH=it.tp==="game"?"120px":"188px";
-ap(cnt,h("img",{src:it.po,s:{width:poW,height:poH,objectFit:"cover",borderRadius:"5px",flexShrink:"0",boxShadow:"0 10px 36px rgba(0,0,0,.6)",border:"1px solid "+ct.n+"15"}}))};
+if(it.po){
+ap(cnt,h("img",{src:it.po,s:{width:"125px",height:"188px",objectFit:"cover",borderRadius:"5px",flexShrink:"0",boxShadow:"0 10px 36px rgba(0,0,0,.6)",border:"1px solid "+ct.n+"15"}}))};
 var info=h("div",{s:{paddingTop:"45px"}});
 ap(info,nt(ct.n,ct.i+" "+ct.l));
 ap(info,h("h1",{s:{fontSize:"24px",fontWeight:"600",lineHeight:"1.2",marginTop:"5px",letterSpacing:"-.3px"},tx:it.ti}));
@@ -540,24 +539,33 @@ if(it.tp==="game"){
     var platforms=(gd.platforms||[]);
     var stores=(gd.stores||[]);
     if(!platforms.length&&!stores.length)return;
-    var platIcons={"PC":"🖥","PlayStation 5":"PS5","PlayStation 4":"PS4","PlayStation 3":"PS3","Xbox Series S/X":"XSX","Xbox One":"XB1","Xbox 360":"X360","Nintendo Switch":"NSW","Nintendo 3DS":"3DS","Wii U":"WiiU","iOS":"iOS","Android":"AND","macOS":"MAC","Linux":"LNX"};
-    var storeIcons={"Steam":"🎮 Steam","PlayStation Store":"🎮 PS Store","Xbox Store":"🎮 Xbox Store","Epic Games":"🎮 Epic","GOG":"🎮 GOG","Nintendo Store":"🎮 Nintendo","App Store":"📱 App Store","Google Play":"📱 Google Play","itch.io":"🎮 itch.io","Xbox 360 Store":"🎮 Xbox 360"};
+    var platLogos={"PC":"https://cdn.simpleicons.org/windows/00adef","PlayStation 5":"https://cdn.simpleicons.org/playstation/003791","PlayStation 4":"https://cdn.simpleicons.org/playstation/003791","PlayStation 3":"https://cdn.simpleicons.org/playstation/003791","Xbox Series S/X":"https://cdn.simpleicons.org/xbox/107C10","Xbox One":"https://cdn.simpleicons.org/xbox/107C10","Xbox 360":"https://cdn.simpleicons.org/xbox/107C10","Nintendo Switch":"https://cdn.simpleicons.org/nintendoswitch/E60012","macOS":"https://cdn.simpleicons.org/apple/fff","Linux":"https://cdn.simpleicons.org/linux/FCC624","iOS":"https://cdn.simpleicons.org/ios/fff","Android":"https://cdn.simpleicons.org/android/3DDC84"};
+    var platShort={"PlayStation 5":"PS5","PlayStation 4":"PS4","PlayStation 3":"PS3","Xbox Series S/X":"Xbox X|S","Xbox One":"Xbox One","Xbox 360":"Xbox 360","Nintendo Switch":"Switch"};
+    var storeLogos={"Steam":"https://cdn.simpleicons.org/steam/fff","PlayStation Store":"https://cdn.simpleicons.org/playstation/003791","Xbox Store":"https://cdn.simpleicons.org/xbox/107C10","Epic Games":"https://cdn.simpleicons.org/epicgames/fff","GOG":"https://cdn.simpleicons.org/gogdotcom/AB47BC","Nintendo Store":"https://cdn.simpleicons.org/nintendo/E60012","App Store":"https://cdn.simpleicons.org/appstore/0D96F6","Google Play":"https://cdn.simpleicons.org/googleplay/34A853","itch.io":"https://cdn.simpleicons.org/itchdotio/FA5C5C"};
+    var gameRow=h("div",{s:{display:"flex",gap:"10px",flexWrap:"wrap"}});
     if(platforms.length){
-      var platPnl=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
-      ap(platPnl,h("span",{cl:"mono9",tx:"PLATEFORMES"}));
-      platforms.forEach(function(p){var name=p.platform.name;var short=platIcons[name]||name.slice(0,4);
-        ap(platPnl,h("span",{s:{fontSize:"11px",padding:"4px 10px",borderRadius:"4px",background:"#0fff9510",border:"1px solid #0fff9520",color:"#0fff95",fontFamily:"var(--mono)",fontWeight:"500"},tx:short}));
+      var platPnl=h("div",{s:{flex:"1",minWidth:"180px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
+      ap(platPnl,h("span",{cl:"mono9",s:{width:"100%",marginBottom:"4px"},tx:"PLATEFORMES"}));
+      platforms.forEach(function(p){var name=p.platform.name;var logo=platLogos[name];var short=platShort[name]||name;
+        var chip=h("div",{s:{display:"flex",alignItems:"center",gap:"5px",padding:"4px 10px",borderRadius:"4px",background:"#0fff950a",border:"1px solid #0fff9518"}});
+        if(logo)ap(chip,h("img",{src:logo,s:{width:"14px",height:"14px",objectFit:"contain"}}));
+        ap(chip,h("span",{s:{fontSize:"11px",color:"#0fff95",fontWeight:"500"},tx:short}));
+        ap(platPnl,chip);
       });
-      ap(provBox,platPnl);
+      ap(gameRow,platPnl);
     }
     if(stores.length){
-      var storePnl=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
-      ap(storePnl,h("span",{cl:"mono9",tx:"DISPO"}));
-      stores.forEach(function(s){var name=s.store.name;var label=storeIcons[name]||name;var url=s.url||"#";
-        ap(storePnl,h("a",{href:url.indexOf("http")===0?url:"https://"+url,target:"_blank",s:{fontSize:"12px",padding:"5px 12px",borderRadius:"4px",background:ct.n+"0c",border:"1px solid "+ct.n+"25",color:ct.n,textDecoration:"none",fontWeight:"500"},tx:label}));
+      var storePnl=h("div",{s:{flex:"1",minWidth:"180px",display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
+      ap(storePnl,h("span",{cl:"mono9",s:{width:"100%",marginBottom:"4px"},tx:"ACHETER"}));
+      stores.forEach(function(s){var name=s.store.name;var logo=storeLogos[name];var url=s.url||"#";
+        var chip=h("a",{href:url.indexOf("http")===0?url:"https://"+url,target:"_blank",s:{display:"flex",alignItems:"center",gap:"5px",padding:"4px 10px",borderRadius:"4px",background:ct.n+"0a",border:"1px solid "+ct.n+"18",textDecoration:"none"}});
+        if(logo)ap(chip,h("img",{src:logo,s:{width:"14px",height:"14px",objectFit:"contain"}}));
+        ap(chip,h("span",{s:{fontSize:"11px",color:ct.n,fontWeight:"500"},tx:name}));
+        ap(storePnl,chip);
       });
-      ap(provBox,storePnl);
+      ap(gameRow,storePnl);
     }
+    ap(provBox,gameRow);
   }).catch(function(){});
 }
 ap(cnt,info);ap(hero,cnt);ap(m,hero);
@@ -596,28 +604,25 @@ ap(mediaBox,mediaLoading);
   }
   else if(it.tp==="game"){
     mediaBox.style.display="block";
-    var gid=it.id.replace(/^g/,"");
-    fetch("https://api.rawg.io/api/games/"+gid+"?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(gData){
-      // Check if RAWG has clip
-      if(gData.clip&&gData.clip.clip){
+    mediaBox.innerHTML="";
+    // YouTube trailer first - use invidious API to find trailer
+    var ytQ=encodeURIComponent(it.ti+" official trailer game");
+    fetch("https://vid.puffyan.us/api/v1/search?q="+ytQ+"&type=video&sort_by=relevance").then(function(r){return r.json()}).then(function(vids){
+      if(vids&&vids.length&&vids[0].videoId){
         mediaBox.innerHTML="";
-        ap(mediaBox,h("video",{src:gData.clip.clip,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
-        return;
-      }
-      // Otherwise try movies endpoint
-      return fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r2){return r2.json()}).then(function(d){
+        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed/"+vids[0].videoId,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px"}}));
+      }else{throw new Error("no yt")}
+    }).catch(function(){
+      // Fallback to RAWG clips/movies
+      var gid=it.id.replace(/^g/,"");
+      fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(d){
         var clip=d.results&&d.results[0];
         if(clip&&clip.data&&clip.data.max){
           mediaBox.innerHTML="";
           ap(mediaBox,h("video",{src:clip.data.max,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
-          return;
-        }
-        // Fallback: embed YouTube search for game trailer
-        mediaBox.innerHTML="";
-        var ytQ=encodeURIComponent(it.ti+" official trailer");
-        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed?listType=search&list="+ytQ,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px"}}));
-      });
-    }).catch(function(){mediaBox.style.display="none"});
+        }else{mediaBox.style.display="none"}
+      }).catch(function(){mediaBox.style.display="none"});
+    });
   }
   else{mediaBox.style.display="none"}
 })();
@@ -627,12 +632,8 @@ var rp=h("div",{cl:"pnl anim",s:{animationDelay:"70ms"}});ap(rp,h("div",{cl:"mon
 var si=h("input",{type:"number",min:"0",max:"20",value:ex?String(ex.sc):"",placeholder:"—",s:{width:"68px",fontSize:"22px",textAlign:"center",fontWeight:"600",padding:"6px"},on:{input:function(){autoSave()}}});
 var scoreRow=ap(h("div",{s:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}),si,h("span",{s:{fontSize:"13px",color:"var(--tx3)"},tx:"/ 20"}));ap(rp,scoreRow);
 var ri=h("textarea",{placeholder:"Mini-review...",rows:"3",s:{resize:"vertical",fontSize:"13px"},on:{input:function(){autoSave()}}});ri.value=ex?ex.rv||"":"";ap(rp,ri);
-var lnk=h("input",{type:"text",placeholder:"Lien (trailer, extrait, article...)",value:ex?ex.lk||"":"",s:{fontSize:"12px",marginTop:"8px",padding:"8px 12px"},on:{input:function(){autoSave()}}});ap(rp,lnk);
-var lnkRow=h("div",{s:{display:"flex",gap:"6px",alignItems:"center",marginTop:"6px"}});
-if(ex&&ex.lk){ap(lnkRow,h("a",{href:ex.lk,target:"_blank",s:{display:"inline-flex",alignItems:"center",gap:"5px",fontSize:"12px",color:ct.n,textDecoration:"none",padding:"5px 12px",borderRadius:"4px",background:ct.n+"0a",border:"1px solid "+ct.n+"18"},tx:"▶ Ouvrir le lien"}))}
-ap(rp,lnkRow);
 var saveMsg=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"8px",opacity:"0",transition:"opacity .3s"},tx:""});
-function autoSave(){var s=parseInt(si.value);if(isNaN(s)||s<0||s>20)return;S.d.r[it.id]={sc:s,rv:ri.value,lk:lnk.value.trim(),it:it,dt:new Date().toISOString()};if(S.d.w[it.id])delete S.d.w[it.id];SV();saveMsg.textContent="✓ Sauvegardé";saveMsg.style.color="#0fff95";saveMsg.style.opacity="1";clearTimeout(saveMsg._t);saveMsg._t=setTimeout(function(){saveMsg.style.opacity="0"},2000);rSB()}
+function autoSave(){var s=parseInt(si.value);if(isNaN(s)||s<0||s>20)return;S.d.r[it.id]={sc:s,rv:ri.value,lk:"",it:it,dt:new Date().toISOString()};if(S.d.w[it.id])delete S.d.w[it.id];SV();saveMsg.textContent="✓ Sauvegardé";saveMsg.style.color="#0fff95";saveMsg.style.opacity="1";clearTimeout(saveMsg._t);saveMsg._t=setTimeout(function(){saveMsg.style.opacity="0"},2000);rSB()}
 ap(rp,saveMsg);
 var br=h("div",{s:{display:"flex",gap:"8px",marginTop:"6px"}});
 if(ex)ap(br,h("button",{s:{padding:"7px 14px",borderRadius:"4px",fontSize:"12px",background:"transparent",border:"1px solid rgba(255,107,107,.15)",color:"#ff6b6b"},tx:"Supprimer la note",on:{click:function(){var cfg=D().cfg||{};if(cfg.confirmDel!==false){if(!confirm("Supprimer cette note ?"))return}delete S.d.r[it.id];delete S.d.t[it.id];SV();rDet();rSB()}}}));
