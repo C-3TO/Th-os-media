@@ -1146,7 +1146,28 @@ var healthRow=h("div",{s:{display:"flex",gap:"12px",marginBottom:"14px",padding:
 ap(healthRow,h("span",{tx:"💾 "+dataSize+" Ko"}));
 ap(healthRow,h("span",{s:{color:hasBackup?"#0fff95":"var(--tx3)"},tx:hasBackup?"✓ Backup actif":"⚠ Pas de backup"}));
 if(lastTs)ap(healthRow,h("span",{tx:"Dernière save : "+new Date(lastTs).toLocaleString("fr-FR")}));
-ap(dp,healthRow);ap(m,dp);
+ap(dp,healthRow);
+// Cloud sync section
+var cloudP=h("div",{s:{marginTop:"14px",paddingTop:"14px",borderTop:"1px solid var(--bc)"}});
+ap(cloudP,h("div",{s:{fontSize:"13px",fontWeight:"500",marginBottom:"8px"},tx:"☁ Synchronisation cloud"}));
+var syncStat=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginBottom:"10px"},tx:"Vérification..."});
+// Check cloud status
+fetch(SYNC_URL).then(function(r){return r.json()}).then(function(rem){
+  var rc=Object.keys(rem&&rem.r||{}).length;
+  var lc=Object.keys(d.r||{}).length;
+  var rts=rem&&rem._syncTs?new Date(rem._syncTs).toLocaleString("fr-FR"):"jamais";
+  syncStat.innerHTML="";
+  ap(syncStat,h("span",{s:{color:rc>0?"#0fff95":"#ff6b6b"},tx:rc>0?"✓ Cloud : "+rc+" notes (sync "+rts+")":"⚠ Cloud vide"}));
+  ap(syncStat,h("span",{s:{marginLeft:"12px"},tx:"Local : "+lc+" notes"}));
+}).catch(function(){syncStat.textContent="⚠ Cloud inaccessible"});
+ap(cloudP,syncStat);
+var syncBtns=h("div",{s:{display:"flex",gap:"8px",flexWrap:"wrap"}});
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#00e5ff12",border:"1px solid #00e5ff30",color:"#00e5ff"},tx:"⬆ Forcer l'envoi",on:{click:function(){syncPush();syncStat.textContent="⬆ Envoi en cours...";syncStat.style.color="#00e5ff";setTimeout(function(){syncStat.textContent="✓ Envoyé !";syncStat.style.color="#0fff95"},2000)}}}));
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#ff9f1c12",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"⬇ Forcer la récupération",on:{click:function(){syncStat.textContent="⬇ Récupération...";syncStat.style.color="#ff9f1c";syncPull(function(){syncStat.textContent="✓ Synchronisé !";syncStat.style.color="#0fff95";setTimeout(rSet,1500)})}}}));
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"transparent",border:"1px solid var(--bc)",color:"var(--tx3)"},tx:"⟳ Pull + Push complet",on:{click:function(){syncStat.textContent="⟳ Sync complète...";syncStat.style.color="#d97aff";syncPull(function(){syncPush();syncStat.textContent="✓ Sync complète !";syncStat.style.color="#0fff95";setTimeout(rSet,1500)})}}}));
+ap(cloudP,syncBtns);
+ap(dp,cloudP);
+ap(m,dp);
 // Danger zone
 var dz=h("div",{cl:"pnl anim",s:{animationDelay:"120ms",borderColor:"rgba(255,107,107,.15)"}});ap(dz,h("div",{cl:"mono9",s:{marginBottom:"12px",color:"#ff6b6b"},tx:"ZONE DANGER"}));
 ap(dz,h("p",{s:{fontSize:"12px",color:"var(--tx3)",marginBottom:"12px"},tx:"Actions irréversibles."}));
