@@ -91,7 +91,7 @@ function syncPull(){
 syncPull();
 setInterval(function(){if(S.d&&Object.keys(S.d.r||{}).length>0)syncPush()},30000);
 S.d=LD();
-function D(){if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice(),cfg:{}};return S.d}
+function D(){if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice(),cfg:{},ep:{}};if(!S.d.ep)S.d.ep={};return S.d}
 // Scroll memory
 var _scrollMem={};
 function go(v){
@@ -674,10 +674,141 @@ ap(mediaBox,mediaLoading);
   }
   else{mediaBox.style.display="none"}
 })();
+// Season/Episode system for series and anime
+var epSection=null;
+if(it.tp==="series"||it.tp==="anime"){
+  epSection=h("div",{cl:"anim",s:{marginBottom:"14px",animationDelay:"80ms"}});
+  ap(epSection,h("div",{cl:"mono9",s:{marginBottom:"12px"},tx:"SAISONS & ÉPISODES"}));
+  var epData=D().ep[it.id]||{};
+  // Compute global average from episodes
+  function computeAvg(){
+    var dd=D().ep[it.id]||{};var sum=0,cnt=0;
+    Object.keys(dd).forEach(function(sn){Object.keys(dd[sn]).forEach(function(en){var v=dd[sn][en];if(typeof v==="number"){sum+=v;cnt++}})});
+    return cnt>0?{avg:(sum/cnt),cnt:cnt}:null;
+  }
+  function updateGlobalScore(){
+    var res=computeAvg();
+    if(res){
+      var rounded=Math.round(res.avg*10)/10;
+      D().r[it.id]={sc:Math.round(res.avg),rv:(ex?ex.rv:"")||"",lk:"",it:it,dt:new Date().toISOString()};
+      SV();
+      if(si)si.value=String(Math.round(res.avg));
+    }
+  }
+  function buildSeasons(seasons){
+    seasons.forEach(function(season){
+      if(season.num===0)return;// skip specials
+      var sKey=String(season.num);
+      if(!epData[sKey])epData[sKey]={};
+      var sRatings=epData[sKey];
+      // Compute season average
+      function sAvg(){var s2=0,c2=0;Object.keys(sRatings).forEach(function(k){var v=sRatings[k];if(typeof v==="number"){s2+=v;c2++}});return c2>0?(s2/c2).toFixed(1):null}
+      var sBox=h("div",{s:{marginBottom:"6px",background:"var(--bg2)",borderRadius:"5px",border:"1px solid var(--bc)",overflow:"hidden"}});
+      // Season header (clickable)
+      var sAvgSpan=h("span",{s:{fontFamily:"var(--mono)",fontSize:"12px",color:"var(--tx3)"},tx:""});
+      function updSAvg(){var a=sAvg();sAvgSpan.textContent=a?a+"/20":"—";sAvgSpan.style.color=a?(parseFloat(a)>=15?"#0fff95":parseFloat(a)>=10?"#ffe66d":"#ff6b6b"):"var(--tx3)"}
+      updSAvg();
+      var sHdr=h("div",{s:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer"},on:{click:function(){var ep2=sBox.querySelector(".ep-list");if(ep2){ep2.style.display=ep2.style.display==="none"?"block":"none";arrow.textContent=ep2.style.display==="none"?"▸":"▾"}}}});
+      var sLeft=h("div",{s:{display:"flex",alignItems:"center",gap:"8px"}});
+      var arrow=h("span",{s:{fontSize:"10px",color:"var(--tx3)",width:"12px"},tx:"▸"});
+      ap(sLeft,arrow);
+      ap(sLeft,h("span",{s:{fontSize:"13px",fontWeight:"600"},tx:"Saison "+season.num}));
+      ap(sLeft,h("span",{s:{fontSize:"11px",color:"var(--tx3)"},tx:season.epCount+" épisodes"}));
+      var sRight=h("div",{s:{display:"flex",alignItems:"center",gap:"8px"}});
+      ap(sRight,h("span",{cl:"mono9",tx:"MOY"}),sAvgSpan);
+      ap(sHdr,sLeft,sRight);ap(sBox,sHdr);
+      // Episode list (collapsed by default)
+      var epList=h("div",{cl:"ep-list",s:{display:"none",borderTop:"1px solid var(--bc)"}});
+      if(season.episodes&&season.episodes.length){
+        season.episodes.forEach(function(ep){
+          var eKey=String(ep.num);
+          var epRow=h("div",{s:{display:"flex",alignItems:"center",gap:"10px",padding:"7px 14px",borderBottom:"1px solid var(--bc)",fontSize:"12px"}});
+          ap(epRow,h("span",{s:{fontFamily:"var(--mono)",fontSize:"11px",color:"var(--tx3)",width:"28px",flexShrink:"0"},tx:"E"+ep.num}));
+          ap(epRow,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tx2)"},tx:ep.name}));
+          if(ep.date)ap(epRow,h("span",{s:{fontSize:"10px",color:"var(--tx3)",flexShrink:"0"},tx:ep.date.slice(0,10)}));
+          var epInp=h("input",{type:"number",min:"0",max:"20",placeholder:"—",value:sRatings[eKey]!=null?String(sRatings[eKey]):"",s:{width:"40px",height:"26px",padding:"0 2px",textAlign:"center",fontSize:"12px",fontWeight:"600",fontFamily:"var(--mono)",background:"var(--bg3)",border:"1px solid var(--bc)",borderRadius:"3px",color:"var(--tx)",flexShrink:"0"},on:{input:function(){var v=parseInt(epInp.value);if(!isNaN(v)&&v>=0&&v<=20){sRatings[eKey]=v;D().ep[it.id]=epData;SV();updSAvg();updateGlobalScore()}else if(epInp.value===""){delete sRatings[eKey];D().ep[it.id]=epData;SV();updSAvg();updateGlobalScore()}}}});
+          ap(epRow,epInp,h("span",{s:{fontSize:"9px",color:"var(--tx3)"},tx:"/20"}));
+          ap(epList,epRow);
+        });
+      }else{
+        // Episodes not loaded yet - show loading
+        var epLoad=h("div",{s:{padding:"12px 14px",fontSize:"12px",color:"var(--tx3)"},tx:"Chargement des épisodes..."});
+        ap(epList,epLoad);
+        // Fetch episodes
+        if(it.tp==="series"){
+          var sid=it.id.replace(/^s/,"");
+          fetch("https://api.themoviedb.org/3/tv/"+sid+"/season/"+season.num+"?api_key="+TK+"&language=fr-FR").then(function(r){return r.json()}).then(function(sd){
+            epList.innerHTML="";
+            (sd.episodes||[]).forEach(function(ep3){
+              var eKey3=String(ep3.episode_number);
+              var epRow3=h("div",{s:{display:"flex",alignItems:"center",gap:"10px",padding:"7px 14px",borderBottom:"1px solid var(--bc)",fontSize:"12px"}});
+              ap(epRow3,h("span",{s:{fontFamily:"var(--mono)",fontSize:"11px",color:"var(--tx3)",width:"28px",flexShrink:"0"},tx:"E"+ep3.episode_number}));
+              ap(epRow3,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tx2)"},tx:ep3.name||"Épisode "+ep3.episode_number}));
+              if(ep3.air_date)ap(epRow3,h("span",{s:{fontSize:"10px",color:"var(--tx3)",flexShrink:"0"},tx:ep3.air_date}));
+              var epInp3=h("input",{type:"number",min:"0",max:"20",placeholder:"—",value:sRatings[eKey3]!=null?String(sRatings[eKey3]):"",s:{width:"40px",height:"26px",padding:"0 2px",textAlign:"center",fontSize:"12px",fontWeight:"600",fontFamily:"var(--mono)",background:"var(--bg3)",border:"1px solid var(--bc)",borderRadius:"3px",color:"var(--tx)",flexShrink:"0"},on:{input:function(){var v3=parseInt(epInp3.value);if(!isNaN(v3)&&v3>=0&&v3<=20){sRatings[eKey3]=v3;D().ep[it.id]=epData;SV();updSAvg();updateGlobalScore()}else if(epInp3.value===""){delete sRatings[eKey3];D().ep[it.id]=epData;SV();updSAvg();updateGlobalScore()}}}});
+              ap(epRow3,epInp3,h("span",{s:{fontSize:"9px",color:"var(--tx3)"},tx:"/20"}));
+              ap(epList,epRow3);
+            });
+          }).catch(function(){epLoad.textContent="Erreur de chargement"});
+        }
+      }
+      ap(sBox,epList);ap(epSection,sBox);
+    });
+  }
+  // Fetch series/anime detail for season list
+  if(it.tp==="series"){
+    var seriesId=it.id.replace(/^s/,"");
+    fetch("https://api.themoviedb.org/3/tv/"+seriesId+"?api_key="+TK+"&language=fr-FR").then(function(r){return r.json()}).then(function(tvd){
+      var seasons=(tvd.seasons||[]).map(function(s){return{num:s.season_number,name:s.name,epCount:s.episode_count,episodes:null}});
+      buildSeasons(seasons);
+    }).catch(function(){});
+  }else if(it.tp==="anime"){
+    var animeId=it.id.replace(/^a/,"");
+    // Jikan doesn't have seasons - treat as single season, fetch all episodes
+    fetch("https://api.jikan.moe/v4/anime/"+animeId+"/episodes?page=1").then(function(r){return r.json()}).then(function(epd){
+      var pages=epd.pagination?epd.pagination.last_visible_page:1;
+      var allEps=(epd.data||[]).map(function(e){return{num:e.mal_id,name:e.title||e.title_japanese||("Épisode "+e.mal_id),date:e.aired||""}});
+      // If multiple pages, group into seasons of 24-26 eps
+      function buildFromEps(eps){
+        if(eps.length<=26){
+          buildSeasons([{num:1,name:"Saison 1",epCount:eps.length,episodes:eps}]);
+        }else{
+          var sz=Math.ceil(eps.length/Math.ceil(eps.length/24));
+          var sArr=[];
+          for(var i=0;i<eps.length;i+=sz){
+            var chunk=eps.slice(i,i+sz);
+            sArr.push({num:sArr.length+1,name:"Saison "+(sArr.length+1),epCount:chunk.length,episodes:chunk});
+          }
+          buildSeasons(sArr);
+        }
+      }
+      if(pages>1){
+        // Fetch remaining pages
+        var fetches=[];
+        for(var pg=2;pg<=Math.min(pages,4);pg++){
+          fetches.push(fetch("https://api.jikan.moe/v4/anime/"+animeId+"/episodes?page="+pg).then(function(r2){return r2.json()}));
+        }
+        Promise.all(fetches).then(function(results){
+          results.forEach(function(rd){(rd.data||[]).forEach(function(e){allEps.push({num:e.mal_id,name:e.title||("Épisode "+e.mal_id),date:e.aired||""})})});
+          buildFromEps(allEps);
+        }).catch(function(){buildFromEps(allEps)});
+      }else{
+        buildFromEps(allEps);
+      }
+    }).catch(function(){});
+  }
+  ap(m,epSection);
+}
 // Panels
 var panels=h("div",{s:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"14px"}});
-var rp=h("div",{cl:"pnl anim",s:{animationDelay:"70ms"}});ap(rp,h("div",{cl:"mono9",s:{marginBottom:"12px"},tx:"MA NOTE"}));
-var si=h("input",{type:"number",min:"0",max:"20",value:ex?String(ex.sc):"",placeholder:"—",s:{width:"68px",fontSize:"22px",textAlign:"center",fontWeight:"600",padding:"6px"},on:{input:function(){autoSave()}}});
+var rp=h("div",{cl:"pnl anim",s:{animationDelay:"70ms"}});
+var isEpBased=(it.tp==="series"||it.tp==="anime");
+ap(rp,h("div",{cl:"mono9",s:{marginBottom:"12px"},tx:isEpBased?"NOTE GLOBALE":"MA NOTE"}));
+if(isEpBased){
+  ap(rp,h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginBottom:"8px",fontStyle:"italic"},tx:"Calculée depuis tes notes d'épisodes"}));
+}
+var si=h("input",{type:"number",min:"0",max:"20",value:ex?String(ex.sc):"",placeholder:"—",s:{width:"68px",fontSize:"22px",textAlign:"center",fontWeight:"600",padding:"6px"},on:{input:function(){if(!isEpBased)autoSave()}}});
+if(isEpBased){si.readOnly=true;si.style.opacity=".6";si.style.cursor="default"}
 var scoreRow=ap(h("div",{s:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px"}}),si,h("span",{s:{fontSize:"13px",color:"var(--tx3)"},tx:"/ 20"}));ap(rp,scoreRow);
 var ri=h("textarea",{placeholder:"Mini-review...",rows:"3",s:{resize:"vertical",fontSize:"13px"},on:{input:function(){autoSave()}}});ri.value=ex?ex.rv||"":"";ap(rp,ri);
 var saveMsg=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"8px",opacity:"0",transition:"opacity .3s"},tx:""});
