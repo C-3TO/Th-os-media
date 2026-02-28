@@ -26,25 +26,31 @@ button{font-family:var(--sans);cursor:pointer}input,textarea,select{font-family:
 #gr{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.015;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}.light #gr{opacity:.006}
 @media(max-width:768px){
 body{flex-direction:column}
-#sb{position:fixed!important;top:auto!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;height:56px!important;border-right:none!important;border-top:1px solid var(--bc)!important;flex-direction:row!important;z-index:100;padding:0!important}
-#sb.c{width:100%!important;height:56px!important}
-#mn{margin-left:0!important;padding:16px 14px 72px!important;max-width:100%!important}
+#sb{position:fixed!important;top:0!important;left:0!important;bottom:0!important;width:260px!important;height:100%!important;border-right:1px solid var(--bc)!important;transform:translateX(-100%);transition:transform .25s cubic-bezier(.16,1,.3,1)!important;z-index:200!important}
+#sb.mob-open{transform:translateX(0)!important}
+#sb.c{width:260px!important}
+#mn{margin-left:0!important;padding:16px 14px!important;max-width:100%!important;padding-top:56px!important}
 #sb.c~#mn{margin-left:0!important}
+#mob-burger{display:flex!important}
+#mob-overlay{display:block!important}
 .G{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;gap:12px!important}
 .pnl{padding:14px!important}
 .sc{padding:10px 12px!important}
-.mob-hide{display:none!important}
-.mob-grid1{grid-template-columns:1fr!important}
-.mob-grid2{grid-template-columns:1fr 1fr!important}
-.mob-grid3{grid-template-columns:repeat(3,1fr)!important}
+}
+@media(min-width:769px){
+#mob-burger{display:none!important}
+#mob-overlay{display:none!important}
 }
 @media(max-width:480px){
 .G{grid-template-columns:repeat(auto-fill,minmax(105px,1fr))!important;gap:10px!important}
-#mn{padding:12px 10px 72px!important}
+#mn{padding:12px 10px!important;padding-top:52px!important}
 }
 </style>
 </head>
 <body>
+<button id="mob-burger" onclick="document.getElementById('sb').classList.toggle('mob-open');document.getElementById('mob-overlay').classList.toggle('vis')" style="display:none;position:fixed;top:12px;left:12px;z-index:150;width:38px;height:38px;border-radius:6px;background:var(--bg2);border:1px solid var(--bc);color:var(--tx);font-size:18px;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px)">☰</button>
+<div id="mob-overlay" onclick="document.getElementById('sb').classList.remove('mob-open');this.classList.remove('vis')" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;opacity:0;transition:opacity .25s;pointer-events:none"></div>
+<style>#mob-overlay.vis{opacity:1!important;pointer-events:auto!important}</style>
 <div id="sb"></div><div id="mn"></div><div id="gr"></div>
 <script>
 var TK="2dca580c2a14b55200e784d157207b4d",TI="https://image.tmdb.org/t/p",SK="theos5",
@@ -114,6 +120,8 @@ function D(){if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice(),cfg:{},ep:{}};if(!S.d.ep)S
 // Scroll memory
 var _scrollMem={};
 function go(v){
+  // Close mobile menu
+  if(isMob()){var sb2=document.getElementById("sb");if(sb2)sb2.classList.remove("mob-open");var ov=document.getElementById("mob-overlay");if(ov)ov.classList.remove("vis")}
   // Save scroll position
   _scrollMem[S.v]=window.scrollY;
   S.pv=S.v;S.v=v;
@@ -215,24 +223,14 @@ ap(el,inn);return el}
 // Sidebar
 function rSB(){var d=D(),sb=document.getElementById("sb");sb.innerHTML="";
 var mob=isMob();
-if(mob){
-  // Bottom tab bar
-  sb.style.cssText="position:fixed;bottom:0;left:0;right:0;width:100%;height:56px;background:var(--bg);border-top:1px solid var(--bc);display:flex;align-items:center;justify-content:space-around;z-index:100;padding:0 4px";
-  var navItems=[{k:"dash",l:"Dashboard",i:"▦"},{k:"home",l:"Collection",i:"◈"},{k:"explore",l:"Explorer",i:"⌕"},{k:"watchlist",l:"Watchlist",i:"◎"},{k:"settings",l:"Réglages",i:"⚙"}];
-  navItems.forEach(function(x){var a=S.v===x.k;
-    var b=h("button",{s:{flex:"1",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"6px 0",background:"none",border:"none",color:a?"var(--tx)":"var(--tx3)",fontSize:"9px",fontWeight:a?"500":"400"},on:{click:function(){go(x.k)}}});
-    ap(b,h("span",{s:{fontSize:"16px"},tx:x.i}));
-    ap(b,h("span",{tx:x.l}));
-    ap(sb,b);
-  });
-  return;
-}
-// Desktop sidebar
-sb.style.cssText="";
-if(S.col)sb.classList.add("c");else sb.classList.remove("c");
+// On mobile, always render full sidebar (burger menu opens it)
+if(mob){sb.style.cssText="";sb.classList.remove("c")}
+else{sb.style.cssText="";if(S.col)sb.classList.add("c");else sb.classList.remove("c")}
 var logo=h("div",{s:{padding:S.col?"18px 0":"18px 16px",display:"flex",alignItems:"center",justifyContent:S.col?"center":"space-between",minHeight:"58px"}});
 if(!S.col){var li=h("div",{cl:"h"});ap(li,h("div",{s:{fontSize:"18px",fontWeight:"600",letterSpacing:"-.3px"},tx:"Thé.OS"}));ap(li,h("div",{s:{fontFamily:"var(--mono)",fontSize:"8px",letterSpacing:"3px",color:"#00e5ff",marginTop:"1px"},tx:"MÉDIA"}));ap(logo,li)}
-ap(logo,h("button",{s:{background:"none",border:"none",color:"var(--tx3)",fontSize:"13px",padding:"4px"},tx:S.col?"▸":"◂",on:{click:function(){S.col=!S.col;RR()}}}));ap(sb,logo);
+if(mob){ap(logo,h("button",{s:{background:"none",border:"none",color:"var(--tx3)",fontSize:"16px",padding:"4px"},tx:"✕",on:{click:function(){sb.classList.remove("mob-open");document.getElementById("mob-overlay").classList.remove("vis")}}}))}
+else{ap(logo,h("button",{s:{background:"none",border:"none",color:"var(--tx3)",fontSize:"13px",padding:"4px"},tx:S.col?"▸":"◂",on:{click:function(){S.col=!S.col;RR()}}}))}
+ap(sb,logo);
 var nv=h("div",{s:{padding:S.col?"4px 5px":"4px 8px"}});
 var navItems=[{k:"dash",l:"Dashboard",i:"▦"},{k:"home",l:"Collection",i:"◈"},{k:"explore",l:"Explorer",i:"⌕"},{k:"watchlist",l:"Watchlist",i:"◎"},{k:"settings",l:"Réglages",i:"⚙"}];
 navItems.forEach(function(x){var a=S.v===x.k;
