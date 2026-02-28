@@ -93,85 +93,64 @@ function SV(){
 setInterval(function(){if(S.d&&Object.keys(S.d.r||{}).length>0)SV()},120000);
 // Save before page unload
 window.addEventListener("beforeunload",function(){if(S.d)SV()});
-// Cloud sync via jsonblob (cross-device) — aggressive bidirectional merge
-var SYNC_URL="https://jsonblob.com/api/jsonBlob/019ca468-d719-725e-8124-d1ac93a3ca04";
+// Cloud sync via kvdb.io (cross-device, CORS enabled)
+var KVDB="https://kvdb.io/PAhBeK3j5G8FoxgNdSUq8F/theos_media";
 var _syncing=false;
-function syncPush(){
-  if(_syncing||!S.d)return;
-  _syncing=true;
-  S.d._syncTs=new Date().toISOString();
-  S.d._device=(navigator.userAgent.indexOf("Mac")!==-1?"mac":"pc");
-  var json=JSON.stringify(S.d);
-  fetch(SYNC_URL,{method:"PUT",headers:{"Content-Type":"application/json"},body:json}).then(function(r){
-    if(r.ok){console.log("☁ Push OK ("+Object.keys(S.d.r||{}).length+" notes)")}
-    else{console.warn("☁ Push failed: "+r.status)}
+function syncPush(cb){
+  if(_syncing||!S.d)return cb&&cb();
+  _syncing=true;S.d._syncTs=new Date().toISOString();
+  fetch(KVDB,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(S.d)}).then(function(r){
     _syncing=false;
-  }).catch(function(e){console.warn("☁ Push error:",e);_syncing=false});
+    if(r.ok)console.log("☁ Push OK ("+Object.keys(S.d.r||{}).length+" notes)");
+    else console.warn("☁ Push fail:",r.status);
+    if(cb)cb();
+  }).catch(function(e){_syncing=false;console.warn("☁ Push err:",e);if(cb)cb()});
 }
 function syncPull(cb){
-  if(_syncing)return;
+  if(_syncing)return cb&&cb();
   _syncing=true;
-  fetch(SYNC_URL).then(function(r){return r.json()}).then(function(remote){
-    _syncing=false;
-    if(!remote||typeof remote!=="object")return cb&&cb();
-    var local=S.d||{r:{},w:{},t:{},ep:{},p:DP.slice(),cfg:{}};
-    if(!local.r)local.r={};if(!local.w)local.w={};if(!local.t)local.t={};if(!local.ep)local.ep={};
-    if(!remote.r)remote.r={};if(!remote.w)remote.w={};if(!remote.t)remote.t={};if(!remote.ep)remote.ep={};
+  fetch(KVDB).then(function(r){if(r.status===404){_syncing=false;console.log("☁ Cloud vide");if(cb)cb();return null}return r.json()}).then(function(remote){
+    _syncing=false;if(!remote||!remote.r)return cb&&cb();
+    var local=S.d;
+    ["r","w","t","ep"].forEach(function(k){if(!local[k])local[k]={};if(!remote[k])remote[k]={}});
     var changed=false;
-    // MERGE RATINGS — bidirectional, most recent wins per entry
+    // Ratings — most recent per entry
     Object.keys(remote.r).forEach(function(k){
       if(!local.r[k]){local.r[k]=remote.r[k];changed=true}
       else if(remote.r[k].dt&&local.r[k].dt&&remote.r[k].dt>local.r[k].dt){local.r[k]=remote.r[k];changed=true}
     });
-    // MERGE WATCHLIST — union of both
-    Object.keys(remote.w).forEach(function(k){
-      if(!local.w[k]){local.w[k]=remote.w[k];changed=true}
-    });
-    // MERGE TAGS — union of both
+    // Watchlist — union
+    Object.keys(remote.w).forEach(function(k){if(!local.w[k]){local.w[k]=remote.w[k];changed=true}});
+    // Tags — union
     Object.keys(remote.t).forEach(function(k){
       if(!local.t[k]){local.t[k]=remote.t[k];changed=true}
-      else{
-        var lt=local.t[k]||[],rt=remote.t[k]||[];
-        if(Array.isArray(rt)){rt.forEach(function(tag){if(lt.indexOf(tag)===-1){lt.push(tag);changed=true}})}
-        local.t[k]=lt;
-      }
+      else if(Array.isArray(remote.t[k])){remote.t[k].forEach(function(tag){if((local.t[k]||[]).indexOf(tag)===-1){local.t[k].push(tag);changed=true}})}
     });
-    // MERGE EPISODES — bidirectional, keep highest score per episode
+    // Episodes — bidirectional
     Object.keys(remote.ep).forEach(function(sid){
       if(!local.ep[sid]){local.ep[sid]=remote.ep[sid];changed=true;return}
       Object.keys(remote.ep[sid]).forEach(function(sn){
         if(!local.ep[sid][sn]){local.ep[sid][sn]=remote.ep[sid][sn];changed=true;return}
         Object.keys(remote.ep[sid][sn]).forEach(function(en){
-          var rv=remote.ep[sid][sn][en],lv=local.ep[sid][sn][en];
-          if(lv==null&&rv!=null){local.ep[sid][sn][en]=rv;changed=true}
+          if(local.ep[sid][sn][en]==null&&remote.ep[sid][sn][en]!=null){local.ep[sid][sn][en]=remote.ep[sid][sn][en];changed=true}
         });
       });
     });
-    // MERGE CONFIG — remote wins for missing keys
     if(remote.cfg){if(!local.cfg)local.cfg={};Object.keys(remote.cfg).forEach(function(k){if(local.cfg[k]==null){local.cfg[k]=remote.cfg[k];changed=true}})}
-    // MERGE PRESETS — union
     if(remote.p&&Array.isArray(remote.p)){if(!local.p)local.p=[];remote.p.forEach(function(p){if(local.p.indexOf(p)===-1){local.p.push(p);changed=true}})}
     S.d=local;
-    if(changed){
-      // Backup before overwriting
-      var prev=localStorage.getItem(SK);
-      if(prev)localStorage.setItem(SK+"_presync_bak",prev);
-      SV();
-      console.log("☁ Merged from cloud ("+Object.keys(local.r).length+" notes, "+Object.keys(local.w).length+" watchlist, "+Object.keys(local.ep).length+" ep series)");
-      // Push merged result back so other devices get the full picture
-      syncPush();
-      if(typeof RR==="function")RR();
-    }else{console.log("☁ Pull OK, already in sync")}
+    if(changed){var prev=localStorage.getItem(SK);if(prev)localStorage.setItem(SK+"_presync_bak",prev);SV();syncPush();console.log("☁ Merged ("+Object.keys(local.r).length+" notes)");if(typeof RR==="function")RR()}
+    else console.log("☁ In sync");
     if(cb)cb();
-  }).catch(function(e){_syncing=false;console.warn("☁ Pull error:",e);if(cb)cb()});
+  }).catch(function(e){_syncing=false;console.warn("☁ Pull err:",e);if(cb)cb()});
 }
-// Load local, init, then pull+merge, then periodic push
 S.d=LD();
 function D(){if(!S.d)S.d={r:{},w:{},t:{},p:DP.slice(),cfg:{},ep:{}};if(!S.d.ep)S.d.ep={};return S.d}
-D();// ensure structure
+D();
 syncPull();
-// Push every 20s + immediate push on save (debounced 3s)
 setInterval(function(){syncPush()},20000);
+
+
 // Scroll memory
 var _scrollMem={};
 function go(v){
@@ -1147,25 +1126,25 @@ ap(healthRow,h("span",{tx:"💾 "+dataSize+" Ko"}));
 ap(healthRow,h("span",{s:{color:hasBackup?"#0fff95":"var(--tx3)"},tx:hasBackup?"✓ Backup actif":"⚠ Pas de backup"}));
 if(lastTs)ap(healthRow,h("span",{tx:"Dernière save : "+new Date(lastTs).toLocaleString("fr-FR")}));
 ap(dp,healthRow);
-// Cloud sync section
+// Cloud sync section (kvdb.io — automatic, no config needed)
 var cloudP=h("div",{s:{marginTop:"14px",paddingTop:"14px",borderTop:"1px solid var(--bc)"}});
 ap(cloudP,h("div",{s:{fontSize:"13px",fontWeight:"500",marginBottom:"8px"},tx:"☁ Synchronisation cloud"}));
 var syncStat=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginBottom:"10px"},tx:"Vérification..."});
-// Check cloud status
-fetch(SYNC_URL).then(function(r){return r.json()}).then(function(rem){
-  var rc=Object.keys(rem&&rem.r||{}).length;
+fetch(KVDB).then(function(r){if(r.status===404){syncStat.innerHTML="";ap(syncStat,h("span",{s:{color:"#ff9f1c"},tx:"☁ Cloud vide"}));ap(syncStat,h("span",{s:{marginLeft:"12px"},tx:"Local : "+Object.keys(d.r||{}).length+" notes"}));return}return r.json().then(function(remote){
+  var rc=Object.keys(remote&&remote.r||{}).length;
   var lc=Object.keys(d.r||{}).length;
-  var rts=rem&&rem._syncTs?new Date(rem._syncTs).toLocaleString("fr-FR"):"jamais";
+  var rts=remote&&remote._syncTs?new Date(remote._syncTs).toLocaleString("fr-FR"):"jamais";
   syncStat.innerHTML="";
-  ap(syncStat,h("span",{s:{color:rc>0?"#0fff95":"#ff6b6b"},tx:rc>0?"✓ Cloud : "+rc+" notes (sync "+rts+")":"⚠ Cloud vide"}));
+  ap(syncStat,h("span",{s:{color:rc>0?"#0fff95":"#ff9f1c"},tx:rc>0?"✓ Cloud : "+rc+" notes (sync "+rts+")":"☁ Cloud vide"}));
   ap(syncStat,h("span",{s:{marginLeft:"12px"},tx:"Local : "+lc+" notes"}));
-}).catch(function(){syncStat.textContent="⚠ Cloud inaccessible"});
+})}).catch(function(){syncStat.textContent="⚠ Cloud inaccessible";syncStat.style.color="#ff6b6b"});
 ap(cloudP,syncStat);
 var syncBtns=h("div",{s:{display:"flex",gap:"8px",flexWrap:"wrap"}});
-ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#00e5ff12",border:"1px solid #00e5ff30",color:"#00e5ff"},tx:"⬆ Forcer l'envoi",on:{click:function(){syncPush();syncStat.textContent="⬆ Envoi en cours...";syncStat.style.color="#00e5ff";setTimeout(function(){syncStat.textContent="✓ Envoyé !";syncStat.style.color="#0fff95"},2000)}}}));
-ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#ff9f1c12",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"⬇ Forcer la récupération",on:{click:function(){syncStat.textContent="⬇ Récupération...";syncStat.style.color="#ff9f1c";syncPull(function(){syncStat.textContent="✓ Synchronisé !";syncStat.style.color="#0fff95";setTimeout(rSet,1500)})}}}));
-ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"transparent",border:"1px solid var(--bc)",color:"var(--tx3)"},tx:"⟳ Pull + Push complet",on:{click:function(){syncStat.textContent="⟳ Sync complète...";syncStat.style.color="#d97aff";syncPull(function(){syncPush();syncStat.textContent="✓ Sync complète !";syncStat.style.color="#0fff95";setTimeout(rSet,1500)})}}}));
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#00e5ff12",border:"1px solid #00e5ff30",color:"#00e5ff"},tx:"⬆ Envoyer",on:{click:function(){syncStat.textContent="⬆ Envoi...";syncStat.style.color="#00e5ff";syncPush(function(){syncStat.textContent="✓ Envoyé !";syncStat.style.color="#0fff95";setTimeout(rSet,2000)})}}}));
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"#ff9f1c12",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"⬇ Récupérer",on:{click:function(){syncStat.textContent="⬇ Récupération...";syncStat.style.color="#ff9f1c";syncPull(function(){syncStat.textContent="✓ Synchronisé !";syncStat.style.color="#0fff95";setTimeout(rSet,2000)})}}}));
+ap(syncBtns,h("button",{s:{padding:"8px 16px",borderRadius:"4px",fontSize:"12px",background:"transparent",border:"1px solid var(--bc)",color:"var(--tx3)"},tx:"⟳ Sync complète",on:{click:function(){syncStat.textContent="⟳ Sync...";syncStat.style.color="#d97aff";syncPull(function(){syncPush(function(){syncStat.textContent="✓ Sync complète !";syncStat.style.color="#0fff95";setTimeout(rSet,2000)})})}}}));
 ap(cloudP,syncBtns);
+ap(cloudP,h("div",{s:{marginTop:"8px",fontSize:"10px",color:"var(--tx3)"},tx:"Auto-sync toutes les 20s + 3s après chaque sauvegarde"}));
 ap(dp,cloudP);
 ap(m,dp);
 // Danger zone
