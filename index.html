@@ -281,20 +281,23 @@ if(wlItems.length){
   });
   ap(midBand,wPnl);
 }
-// Derniers notés
-var recPnl=h("div",{cl:"pnl",s:{padding:"14px"}});
-ap(recPnl,h("div",{s:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}},[
-  h("div",{cl:"mono9",tx:"DERNIERS NOTÉS"}),
-  h("span",{s:{fontSize:"11px",color:"#00e5ff",cursor:"pointer"},tx:"Collection →",on:{click:function(){go("home")}}})
+// Hall of Fame
+var hofPnl=h("div",{cl:"pnl",s:{padding:"14px"}});
+ap(hofPnl,h("div",{s:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}},[
+  h("div",{cl:"mono9",tx:"HALL OF FAME"}),
+  h("span",{s:{fontSize:"11px",color:"#ffe66d",cursor:"pointer"},tx:"Collection →",on:{click:function(){go("home")}}})
 ]));
-all.slice(0,5).forEach(function(e){if(!e[1].it)return;var ri=e[1].it,rc=C[ri.tp];
+var top5=srt.slice(0,5);
+top5.forEach(function(e,i){if(!e[1].it)return;var ri=e[1].it,rc=C[ri.tp];
+  var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
   var rr=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",cursor:"pointer",fontSize:"12px"},on:{click:function(){S.sel=ri;go("detail")}}});
+  if(medal){ap(rr,h("span",{s:{fontSize:"12px",width:"16px",textAlign:"center"},tx:medal}))}else{ap(rr,h("span",{s:{fontSize:"10px",fontFamily:"var(--mono)",color:"var(--tx3)",width:"16px",textAlign:"center"},tx:"#"+(i+1)}))}
   ap(rr,h("span",{s:{color:rc.n,fontSize:"11px",width:"14px"},tx:rc.i}));
-  ap(rr,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tx2)"},tx:ri.ti}));
+  ap(rr,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:i<3?"var(--tx)":"var(--tx2)",fontWeight:i<3?"500":"400"},tx:ri.ti}));
   ap(rr,bdg(e[1].sc,18));
-  ap(recPnl,rr);
+  ap(hofPnl,rr);
 });
-ap(midBand,recPnl);
+ap(midBand,hofPnl);
 ap(m,midBand)}
 
 // ═══ CATÉGORIES — cards visuelles avec note et count ═══
