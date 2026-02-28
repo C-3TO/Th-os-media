@@ -127,12 +127,13 @@ function bdg(v,sz){sz=sz||26;var c=scl(v);return h("div",{s:{width:sz+"px",heigh
 function nt(c,t){return h("span",{cl:"nt",s:{color:c,background:c+"12",border:"1px solid "+c+"25"},tx:t})}
 // Genre maps
 var GM={28:"Action",12:"Aventure",16:"Animation",35:"Comédie",80:"Crime",99:"Docu",18:"Drame",10751:"Familial",14:"Fantastique",36:"Histoire",27:"Horreur",9648:"Mystère",10749:"Romance",878:"Sci-Fi",53:"Thriller",10752:"Guerre",37:"Western",10759:"Action",10765:"Sci-Fi & Fantasy",10768:"Guerre & Politique"};
+var GG={"Action":"Action","Adventure":"Aventure","RPG":"RPG","Strategy":"Stratégie","Simulation":"Simulation","Shooter":"Shooter","Puzzle":"Puzzle","Platformer":"Plateforme","Racing":"Course","Sports":"Sport","Fighting":"Combat","Indie":"Indé","Casual":"Casual","Arcade":"Arcade","Massively Multiplayer":"MMO","Board Games":"Plateau","Card":"Cartes","Family":"Familial","Educational":"Éducatif"};
 // APIs
 var A={
 film:function(q){return fetch("https://api.themoviedb.org/3/search/movie?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"f"+m.id,tp:"film",ti:m.title,yr:(m.release_date||"").slice(0,4),rd:m.release_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average,gn:(m.genre_ids||[]).map(function(g){return GM[g]||""}).filter(Boolean).slice(0,3)}})})},
 series:function(q){return fetch("https://api.themoviedb.org/3/search/tv?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"s"+m.id,tp:"series",ti:m.name,yr:(m.first_air_date||"").slice(0,4),rd:m.first_air_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average,gn:(m.genre_ids||[]).map(function(g){return GM[g]||""}).filter(Boolean).slice(0,3)}})})},
 anime:function(q){return fetch("https://api.jikan.moe/v4/anime?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.data||[]).map(function(m){return{id:"a"+m.mal_id,tp:"anime",ti:m.title,yr:m.aired&&m.aired.from?(m.aired.from).slice(0,4):"",rd:m.aired&&m.aired.from?(m.aired.from).slice(0,10):"",po:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,bd:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,ov:m.synopsis||"",vt:m.score,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}})})},
-game:function(q){return fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&search="+encodeURIComponent(q)+"&page_size=16").then(function(r){return r.json()}).then(function(d){return(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}})})},
+game:function(q){return fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&search="+encodeURIComponent(q)+"&page_size=16").then(function(r){return r.json()}).then(function(d){return(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return GG[g.name]||g.name}).slice(0,4)}})})},
 book:function(q){return fetch("https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.docs||[]).slice(0,16).map(function(m){return{id:"b"+m.key,tp:"book",ti:m.title,yr:m.first_publish_year?String(m.first_publish_year):"",po:m.cover_i?"https://covers.openlibrary.org/b/id/"+m.cover_i+"-L.jpg":null,bd:null,ov:"",vt:m.ratings_average,au:(m.author_name||[]).join(", "),gn:(m.subject||[]).slice(0,3)}})})}
 };
 </script>
@@ -252,31 +253,52 @@ ap(avgR,h("span",{s:{fontSize:"48px",fontWeight:"700",letterSpacing:"-3px",color
 ap(avgR,h("span",{s:{fontSize:"13px",color:"var(--tx3)",fontWeight:"400"},tx:"/ 20 de moyenne"}));
 ap(bi,avgR);
 // Quick inline stats
+var catOrder=["film","series","anime","game","book"];
 var qs=h("div",{s:{display:"flex",gap:"20px",flexWrap:"wrap",fontSize:"13px"}});
-Object.entries(byCat).sort(function(a,b){return b[1].n-a[1].n}).forEach(function(e){
-  ap(qs,h("span",{s:{color:C[e[0]].n,cursor:"pointer"},tx:C[e[0]].i+" "+e[1].n,on:{click:function(){S.ct=e[0];go("home")}}}));
+catOrder.forEach(function(tp){if(!byCat[tp])return;
+  ap(qs,h("span",{s:{color:C[tp].n,cursor:"pointer"},tx:C[tp].i+" "+byCat[tp].n,on:{click:function(){S.ct=tp;go("home")}}}));
 });
 if(wlT)ap(qs,h("span",{s:{color:"#ff9f1c"},tx:"◎ "+wlT+" en attente"}));
 ap(bi,qs);
 ap(banner,bi);ap(m,banner);
 
-// ═══ DERNIER AJOUT — card cliquable ═══
-if(last&&last[1].it){var lr=last[1],li=lr.it,lc=C[li.tp];
-var lCard=h("div",{cl:"anim",s:{display:"flex",gap:"14px",padding:"14px",background:"var(--bg2)",border:"1px solid var(--bc)",borderRadius:"6px",marginBottom:"24px",cursor:"pointer",transition:"border-color .2s",animationDelay:"30ms"},on:{click:function(){S.sel=li;go("detail")},mouseenter:function(){this.style.borderColor=lc.n+"50"},mouseleave:function(){this.style.borderColor="var(--bc)"}}});
-if(li.po)ap(lCard,h("img",{src:li.po,s:{width:"50px",height:"75px",borderRadius:"4px",objectFit:"cover",objectPosition:li.tp==="game"?"center top":"center",flexShrink:"0"}}));
-var lI=h("div",{s:{flex:"1",minWidth:"0",display:"flex",flexDirection:"column",justifyContent:"center"}});
-ap(lI,h("div",{cl:"mono9",s:{marginBottom:"3px"},tx:"DERNIER AJOUT"}));
-ap(lI,h("div",{s:{fontSize:"15px",fontWeight:"600",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},tx:li.ti}));
-var lSub=h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px",display:"flex",gap:"6px",alignItems:"center"}});
-ap(lSub,nt(lc.n,lc.i+" "+lc.l));
-if(li.gn&&li.gn[0])ap(lSub,nt("#d97aff",li.gn[0]));
-ap(lI,lSub);
-if(lr.rv)ap(lI,h("div",{s:{fontSize:"11px",color:"var(--tx2)",marginTop:"3px",fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},tx:'"'+lr.rv+'"'}));
-ap(lCard,lI,bdg(lr.sc,34));
-ap(m,lCard)}
+// ═══ WATCHLIST APERÇU + EXPLORER ═══
+var wlItems=Object.entries(d.w).sort(function(a,b){return(b[1].dt||"").localeCompare(a[1].dt||"")}).slice(0,5);
+if(wlItems.length||tot>0){
+var midBand=h("div",{cl:"anim",s:{display:"grid",gridTemplateColumns:wlItems.length?"1fr 1fr":"1fr",gap:"10px",marginBottom:"24px",animationDelay:"30ms"}});
+if(wlItems.length){
+  var wPnl=h("div",{cl:"pnl",s:{padding:"14px"}});
+  ap(wPnl,h("div",{s:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}},[
+    h("div",{cl:"mono9",tx:"EN ATTENTE"}),
+    h("span",{s:{fontSize:"11px",color:"#ff9f1c",cursor:"pointer"},tx:"Voir tout →",on:{click:function(){go("watchlist")}}})
+  ]));
+  wlItems.forEach(function(e){if(!e[1].it)return;var wi=e[1].it,wc=C[wi.tp];
+    var wr=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",cursor:"pointer",fontSize:"12px"},on:{click:function(){S.sel=wi;go("detail")}}});
+    ap(wr,h("span",{s:{color:wc.n,fontSize:"11px",width:"14px"},tx:wc.i}));
+    ap(wr,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tx2)"},tx:wi.ti}));
+    ap(wr,h("span",{s:{fontSize:"10px",color:"var(--tx3)",fontFamily:"var(--mono)"},tx:wc.w||""}));
+    ap(wPnl,wr);
+  });
+  ap(midBand,wPnl);
+}
+// Derniers notés
+var recPnl=h("div",{cl:"pnl",s:{padding:"14px"}});
+ap(recPnl,h("div",{s:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}},[
+  h("div",{cl:"mono9",tx:"DERNIERS NOTÉS"}),
+  h("span",{s:{fontSize:"11px",color:"#00e5ff",cursor:"pointer"},tx:"Collection →",on:{click:function(){go("home")}}})
+]));
+all.slice(0,5).forEach(function(e){if(!e[1].it)return;var ri=e[1].it,rc=C[ri.tp];
+  var rr=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",padding:"4px 0",cursor:"pointer",fontSize:"12px"},on:{click:function(){S.sel=ri;go("detail")}}});
+  ap(rr,h("span",{s:{color:rc.n,fontSize:"11px",width:"14px"},tx:rc.i}));
+  ap(rr,h("span",{s:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--tx2)"},tx:ri.ti}));
+  ap(rr,bdg(e[1].sc,18));
+  ap(recPnl,rr);
+});
+ap(midBand,recPnl);
+ap(m,midBand)}
 
 // ═══ CATÉGORIES — cards visuelles avec note et count ═══
-var catKeys=Object.entries(byCat).sort(function(a,b){return b[1].n-a[1].n});
+var catKeys=catOrder.filter(function(tp){return byCat[tp]}).map(function(tp){return[tp,byCat[tp]]});
 var catG=h("div",{cl:"anim",s:{display:"grid",gridTemplateColumns:"repeat("+Math.min(catKeys.length,5)+",1fr)",gap:"8px",marginBottom:"28px",animationDelay:"60ms"}});
 catKeys.forEach(function(e){
   var tp=e[0],dd=e[1],cc=C[tp],ca=(dd.sum/dd.n).toFixed(1);
@@ -456,7 +478,7 @@ if(!S[trendKey]){S[trendKey]=[];S[trendKey+"_l"]=true;
       S[trendKey+"_l"]=false;rExplore()}).catch(function(){S[trendKey+"_l"]=false});
   }else if(S.st==="game"){
     fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&ordering=-added&page_size=12&dates=2025-01-01,2026-12-31").then(function(r){return r.json()}).then(function(d){
-      S[trendKey]=(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}});
+      S[trendKey]=(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return GG[g.name]||g.name}).slice(0,4)}});
       S[trendKey+"_l"]=false;rExplore()}).catch(function(){S[trendKey+"_l"]=false});
   }else if(S.st==="book"){
     fetch("https://openlibrary.org/trending/daily.json?limit=12").then(function(r){return r.json()}).then(function(d){
