@@ -32,7 +32,7 @@ button{font-family:var(--sans);cursor:pointer}input,textarea,select{font-family:
 var TK="2dca580c2a14b55200e784d157207b4d",TI="https://image.tmdb.org/t/p",SK="theos5",
 C={all:{l:"Tout",i:"⬡",n:"#888"},film:{l:"Films",i:"◔",n:"#00e5ff",w:"À voir"},series:{l:"Séries",i:"◧",n:"#ff3d71",w:"À voir"},anime:{l:"Animés",i:"◬",n:"#ff9f1c",w:"À voir"},game:{l:"Jeux",i:"◇",n:"#0fff95",w:"À jouer"},book:{l:"Livres",i:"▭",n:"#ff6b6b",w:"À lire"}},
 DP=["Chef-d'œuvre","Coup de cœur","Comfort zone","Recommandé","Classique","Overrated","Underrated","À revoir"],
-S={d:null,v:"dash",pv:"dash",ct:"all",sel:null,col:false,th:localStorage.getItem("tth")||"dark",sr:[],sl:false,sq:"",st:"all"};
+S={d:null,v:"dash",pv:"dash",ct:"all",sel:null,col:false,th:localStorage.getItem("tth")||"dark",sr:[],sl:false,sq:"",st:"all",gf:""};
 function LD(){
   try{var r=localStorage.getItem(SK);if(r){var d=JSON.parse(r);if(d&&d.r)return d}}catch(e){}
   // Try backup
@@ -125,13 +125,15 @@ function fmtDate(rd){if(!rd||rd.length<10)return null;var p=rd.split("-");var m=
 function isUpcoming(rd){if(!rd||rd.length<10)return false;return new Date(rd)>new Date()}
 function bdg(v,sz){sz=sz||26;var c=scl(v);return h("div",{s:{width:sz+"px",height:sz+"px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid "+c,fontSize:(sz*.38)+"px",fontFamily:"var(--mono)",color:c,background:c+"0a",flexShrink:"0"},tx:String(v)})}
 function nt(c,t){return h("span",{cl:"nt",s:{color:c,background:c+"12",border:"1px solid "+c+"25"},tx:t})}
+// Genre maps
+var GM={28:"Action",12:"Aventure",16:"Animation",35:"Comédie",80:"Crime",99:"Docu",18:"Drame",10751:"Familial",14:"Fantastique",36:"Histoire",27:"Horreur",9648:"Mystère",10749:"Romance",878:"Sci-Fi",53:"Thriller",10752:"Guerre",37:"Western",10759:"Action",10765:"Sci-Fi & Fantasy",10768:"Guerre & Politique"};
 // APIs
 var A={
-film:function(q){return fetch("https://api.themoviedb.org/3/search/movie?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"f"+m.id,tp:"film",ti:m.title,yr:(m.release_date||"").slice(0,4),rd:m.release_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average}})})},
-series:function(q){return fetch("https://api.themoviedb.org/3/search/tv?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"s"+m.id,tp:"series",ti:m.name,yr:(m.first_air_date||"").slice(0,4),rd:m.first_air_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average}})})},
-anime:function(q){return fetch("https://api.jikan.moe/v4/anime?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.data||[]).map(function(m){return{id:"a"+m.mal_id,tp:"anime",ti:m.title,yr:m.aired&&m.aired.from?(m.aired.from).slice(0,4):"",rd:m.aired&&m.aired.from?(m.aired.from).slice(0,10):"",po:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,bd:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,ov:m.synopsis||"",vt:m.score}})})},
-game:function(q){return fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&search="+encodeURIComponent(q)+"&page_size=16").then(function(r){return r.json()}).then(function(d){return(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating}})})},
-book:function(q){return fetch("https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.docs||[]).slice(0,16).map(function(m){return{id:"b"+m.key,tp:"book",ti:m.title,yr:m.first_publish_year?String(m.first_publish_year):"",po:m.cover_i?"https://covers.openlibrary.org/b/id/"+m.cover_i+"-L.jpg":null,bd:null,ov:"",vt:m.ratings_average,au:(m.author_name||[]).join(", ")}})})}
+film:function(q){return fetch("https://api.themoviedb.org/3/search/movie?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"f"+m.id,tp:"film",ti:m.title,yr:(m.release_date||"").slice(0,4),rd:m.release_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average,gn:(m.genre_ids||[]).map(function(g){return GM[g]||""}).filter(Boolean).slice(0,3)}})})},
+series:function(q){return fetch("https://api.themoviedb.org/3/search/tv?api_key="+TK+"&query="+encodeURIComponent(q)+"&language=fr-FR").then(function(r){return r.json()}).then(function(d){return(d.results||[]).slice(0,16).map(function(m){return{id:"s"+m.id,tp:"series",ti:m.name,yr:(m.first_air_date||"").slice(0,4),rd:m.first_air_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average,gn:(m.genre_ids||[]).map(function(g){return GM[g]||""}).filter(Boolean).slice(0,3)}})})},
+anime:function(q){return fetch("https://api.jikan.moe/v4/anime?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.data||[]).map(function(m){return{id:"a"+m.mal_id,tp:"anime",ti:m.title,yr:m.aired&&m.aired.from?(m.aired.from).slice(0,4):"",rd:m.aired&&m.aired.from?(m.aired.from).slice(0,10):"",po:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,bd:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,ov:m.synopsis||"",vt:m.score,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}})})},
+game:function(q){return fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&search="+encodeURIComponent(q)+"&page_size=16").then(function(r){return r.json()}).then(function(d){return(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}})})},
+book:function(q){return fetch("https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=16").then(function(r){return r.json()}).then(function(d){return(d.docs||[]).slice(0,16).map(function(m){return{id:"b"+m.key,tp:"book",ti:m.title,yr:m.first_publish_year?String(m.first_publish_year):"",po:m.cover_i?"https://covers.openlibrary.org/b/id/"+m.cover_i+"-L.jpg":null,bd:null,ov:"",vt:m.ratings_average,au:(m.author_name||[]).join(", "),gn:(m.subject||[]).slice(0,3)}})})}
 };
 </script>
 <script>
@@ -153,7 +155,7 @@ if(it.ov||it.vt){
   ap(el,tip);
 }
 var po=h("div",{s:{position:"relative",paddingBottom:"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
-if(it.po)ap(po,h("img",{src:it.po,loading:"lazy",s:{position:"absolute",inset:"0",width:"100%",height:"100%",objectFit:"cover"}}));
+if(it.po)ap(po,h("img",{src:it.po,loading:"lazy",s:{position:"absolute",inset:"0",width:"100%",height:"100%",objectFit:"cover",objectPosition:it.tp==="game"?"center top":"center"}}));
 else ap(po,h("div",{s:{position:"absolute",inset:"0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",color:"var(--tx3)"},tx:ct.i}));
 ap(po,h("div",{s:{position:"absolute",bottom:"0",left:"0",right:"0",height:"35%",background:"linear-gradient(transparent,rgba(11,11,15,.85))"}}));
 ap(po,h("div",{s:{position:"absolute",bottom:"0",left:"10%",right:"10%",height:"1px",background:"linear-gradient(90deg,transparent,"+ct.n+"50,transparent)"}}));
@@ -170,7 +172,7 @@ ap(po,qr)}
 ap(po,h("div",{s:{position:"absolute",bottom:"10px",left:"7px",padding:"2px 7px",borderRadius:"3px",fontSize:"9px",fontFamily:"var(--mono)",fontWeight:"400",letterSpacing:".5px",background:"rgba(0,0,0,.55)",backdropFilter:"blur(4px)",border:"1px solid "+ct.n+"30",color:ct.n,zIndex:"2"},tx:ct.i+" "+ct.l}));
 ap(el,po);var inf=h("div",{s:{padding:"9px 2px 0"}});
 ap(inf,h("div",{s:{fontSize:"13px",fontWeight:"500",lineHeight:"1.3",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},tx:it.ti}));
-var subParts=(it.rd&&it.rd.length>=10?fmtDate(it.rd):it.yr||"—")+(it.au?" · "+it.au:"");
+var subParts=(it.rd&&it.rd.length>=10?fmtDate(it.rd):it.yr||"—")+(it.au?" · "+it.au:"")+(it.gn&&it.gn.length?" · "+it.gn[0]:"");
 var subRow=h("div",{s:{display:"flex",alignItems:"center",gap:"5px",marginTop:"2px"}});
 ap(subRow,h("span",{s:{fontSize:"11px",color:"var(--tx3)",fontWeight:"300"},tx:subParts}));
 if(isUpcoming(it.rd))ap(subRow,h("span",{s:{fontSize:"8px",fontFamily:"var(--mono)",letterSpacing:"1px",padding:"1px 5px",borderRadius:"2px",background:"#ff9f1c18",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"À VENIR"}));
@@ -262,6 +264,22 @@ ap(cc,h("div",{s:{fontSize:"18px",marginBottom:"4px"},tx:ct2.i}));
 ap(cc,h("div",{s:{fontSize:"13px",fontWeight:"500",color:ct2.n},tx:ct2.l}));
 ap(cc,h("div",{s:{fontSize:"11px",color:"var(--tx3)",marginTop:"2px"},tx:dd.n+" · moy "+ca}));
 ap(catRow,cc)});ap(m,catRow);
+// Genre stats
+var genreStats={};all.forEach(function(e){var it=e[1].it;if(it&&it.gn)it.gn.forEach(function(g){if(!genreStats[g])genreStats[g]={n:0,sum:0};genreStats[g].n++;genreStats[g].sum+=e[1].sc})});
+var topG=Object.entries(genreStats).sort(function(a,b){return b[1].n-a[1].n}).slice(0,8);
+if(topG.length>1){
+  var gp=h("div",{cl:"pnl anim",s:{animationDelay:"200ms",marginBottom:"14px"}});
+  ap(gp,h("div",{cl:"mono9",s:{marginBottom:"10px"},tx:"TOP GENRES"}));
+  topG.forEach(function(g){var gn=g[0],gd=g[1],ga=(gd.sum/gd.n).toFixed(1);
+    var gr=h("div",{s:{display:"flex",alignItems:"center",gap:"10px",marginBottom:"5px"}});
+    ap(gr,h("span",{s:{fontSize:"12px",width:"100px",fontWeight:"500",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"},tx:gn}));
+    var gbar=h("div",{s:{flex:"1",height:"4px",borderRadius:"2px",background:"var(--bg4)",overflow:"hidden"}});
+    ap(gbar,h("div",{s:{height:"100%",width:(gd.n/tot*100)+"%",background:"#d97aff",borderRadius:"2px",opacity:".5"}}));
+    ap(gr,gbar,h("span",{s:{fontFamily:"var(--mono)",fontSize:"11px",color:"var(--tx3)",width:"20px",textAlign:"right"},tx:String(gd.n)}),h("span",{s:{fontFamily:"var(--mono)",fontSize:"11px",color:"#d97aff",width:"36px",textAlign:"right"},tx:ga}));
+    ap(gp,gr);
+  });
+  ap(m,gp);
+}
 // Sections
 function sec(t,s){var w=h("div",{s:{marginTop:"26px",marginBottom:"12px"}});ap(w,h("div",{s:{fontSize:"20px",fontWeight:"600",letterSpacing:"-.2px"},tx:t}));if(s)ap(w,h("div",{s:{fontSize:"12px",color:"var(--tx3)",marginTop:"2px"},tx:s}));return w}
 ap(m,sec("Coups de cœur","Note max : "+maxS+"/20"));
@@ -306,6 +324,19 @@ var cpills=h("div",{cl:"anim",s:{display:"flex",gap:"6px",marginBottom:"14px",fl
 Object.entries(C).forEach(function(e){var k=e[0],c=e[1],a=S.ct===k;
 ap(cpills,h("button",{s:{padding:"5px 13px",borderRadius:"4px",fontSize:"12px",fontWeight:a?"500":"400",background:a?c.n+"15":"transparent",border:"1px solid "+(a?c.n+"40":"var(--bc)"),color:a?c.n:"var(--tx3)"},tx:k==="all"?c.l:c.i+" "+c.l,on:{click:function(){S.ct=k;rHome()}}}))});
 ap(m,cpills);
+// Genre filter pills - collect genres from filtered entries
+var allGenres={};en.forEach(function(e){var it=e[1].it;if(it&&it.gn)it.gn.forEach(function(g){allGenres[g]=(allGenres[g]||0)+1})});
+var topGenres=Object.entries(allGenres).sort(function(a,b){return b[1]-a[1]}).slice(0,12);
+if(topGenres.length>1){
+  var gpills=h("div",{cl:"anim",s:{display:"flex",gap:"5px",marginBottom:"14px",flexWrap:"wrap",animationDelay:"30ms"}});
+  ap(gpills,h("button",{s:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",background:!S.gf?"#fff1":"transparent",border:"1px solid "+(!S.gf?"#fff3":"var(--bc)"),color:!S.gf?"var(--tx)":"var(--tx3)"},tx:"Tous",on:{click:function(){S.gf="";rHome()}}}));
+  topGenres.forEach(function(g){var gn=g[0],a=S.gf===gn;
+    ap(gpills,h("button",{s:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",background:a?"#d97aff18":"transparent",border:"1px solid "+(a?"#d97aff40":"var(--bc)"),color:a?"#d97aff":"var(--tx3)"},tx:gn,on:{click:function(){S.gf=a?"":gn;rHome()}}}));
+  });
+  ap(m,gpills);
+}
+// Apply genre filter
+if(S.gf){en=en.filter(function(e){var it=e[1].it;return it&&it.gn&&it.gn.indexOf(S.gf)!==-1})}
 if(Object.keys(d.r).length>0){
 // Toolbar
 var tb=h("div",{cl:"anim",s:{display:"flex",gap:"8px",alignItems:"center",marginBottom:"18px",flexWrap:"wrap",animationDelay:"30ms"}});
@@ -371,15 +402,15 @@ if(!S[trendKey]){S[trendKey]=[];S[trendKey+"_l"]=true;
   if(S.st==="all"||S.st==="film"||S.st==="series"){
     var tUrl=S.st==="film"?"https://api.themoviedb.org/3/trending/movie/week?api_key="+TK+"&language=fr-FR":S.st==="series"?"https://api.themoviedb.org/3/trending/tv/week?api_key="+TK+"&language=fr-FR":"https://api.themoviedb.org/3/trending/all/week?api_key="+TK+"&language=fr-FR";
     fetch(tUrl).then(function(r){return r.json()}).then(function(d){
-      S[trendKey]=(d.results||[]).slice(0,12).map(function(m){var tp=m.media_type==="tv"?"series":S.st==="series"?"series":"film";return{id:tp[0]+m.id,tp:tp,ti:m.title||m.name,yr:(m.release_date||m.first_air_date||"").slice(0,4),rd:m.release_date||m.first_air_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average}});
+      S[trendKey]=(d.results||[]).slice(0,12).map(function(m){var tp=m.media_type==="tv"?"series":S.st==="series"?"series":"film";return{id:tp[0]+m.id,tp:tp,ti:m.title||m.name,yr:(m.release_date||m.first_air_date||"").slice(0,4),rd:m.release_date||m.first_air_date||"",po:m.poster_path?TI+"/w500"+m.poster_path:null,bd:m.backdrop_path?TI+"/w1280"+m.backdrop_path:null,ov:m.overview,vt:m.vote_average,gn:(m.genre_ids||[]).map(function(g){return GM[g]||""}).filter(Boolean).slice(0,3)}});
       S[trendKey+"_l"]=false;rExplore()}).catch(function(){S[trendKey+"_l"]=false});
   }else if(S.st==="anime"){
     fetch("https://api.jikan.moe/v4/top/anime?limit=12&filter=airing").then(function(r){return r.json()}).then(function(d){
-      S[trendKey]=(d.data||[]).map(function(m){return{id:"a"+m.mal_id,tp:"anime",ti:m.title,yr:m.aired&&m.aired.from?(m.aired.from).slice(0,4):"",rd:m.aired&&m.aired.from?(m.aired.from).slice(0,10):"",po:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,bd:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,ov:m.synopsis||"",vt:m.score}});
+      S[trendKey]=(d.data||[]).map(function(m){return{id:"a"+m.mal_id,tp:"anime",ti:m.title,yr:m.aired&&m.aired.from?(m.aired.from).slice(0,4):"",rd:m.aired&&m.aired.from?(m.aired.from).slice(0,10):"",po:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,bd:m.images&&m.images.jpg?m.images.jpg.large_image_url:null,ov:m.synopsis||"",vt:m.score,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}});
       S[trendKey+"_l"]=false;rExplore()}).catch(function(){S[trendKey+"_l"]=false});
   }else if(S.st==="game"){
     fetch("https://api.rawg.io/api/games?key=c542e67aec3a4340908f9de9e86038af&ordering=-added&page_size=12&dates=2025-01-01,2026-12-31").then(function(r){return r.json()}).then(function(d){
-      S[trendKey]=(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating}});
+      S[trendKey]=(d.results||[]).map(function(m){return{id:"g"+m.id,tp:"game",ti:m.name,yr:(m.released||"").slice(0,4),rd:m.released||"",po:m.background_image,bd:m.background_image,ov:"",vt:m.rating,gn:(m.genres||[]).map(function(g){return g.name}).slice(0,3)}});
       S[trendKey+"_l"]=false;rExplore()}).catch(function(){S[trendKey+"_l"]=false});
   }else if(S.st==="book"){
     fetch("https://openlibrary.org/trending/daily.json?limit=12").then(function(r){return r.json()}).then(function(d){
@@ -411,6 +442,18 @@ var wpills=h("div",{cl:"anim",s:{display:"flex",gap:"6px",marginBottom:"18px",fl
 Object.entries(C).forEach(function(e){var k=e[0],c=e[1],a=S.ct===k;
 ap(wpills,h("button",{s:{padding:"5px 13px",borderRadius:"4px",fontSize:"12px",fontWeight:a?"500":"400",background:a?c.n+"15":"transparent",border:"1px solid "+(a?c.n+"40":"var(--bc)"),color:a?c.n:"var(--tx3)"},tx:k==="all"?c.l:c.i+" "+c.l,on:{click:function(){S.ct=k;rWL()}}}))});
 ap(m,wpills);
+// Genre filter in watchlist
+var wGenres={};en.forEach(function(e){var it=e[1].it;if(it&&it.gn)it.gn.forEach(function(g){wGenres[g]=(wGenres[g]||0)+1})});
+var wTopG=Object.entries(wGenres).sort(function(a,b){return b[1]-a[1]}).slice(0,10);
+if(wTopG.length>1){
+  var wgp=h("div",{cl:"anim",s:{display:"flex",gap:"5px",marginBottom:"14px",flexWrap:"wrap"}});
+  ap(wgp,h("button",{s:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",background:!S.gf?"#fff1":"transparent",border:"1px solid "+(!S.gf?"#fff3":"var(--bc)"),color:!S.gf?"var(--tx)":"var(--tx3)"},tx:"Tous",on:{click:function(){S.gf="";rWL()}}}));
+  wTopG.forEach(function(g){var gn=g[0],a=S.gf===gn;
+    ap(wgp,h("button",{s:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",background:a?"#d97aff18":"transparent",border:"1px solid "+(a?"#d97aff40":"var(--bc)"),color:a?"#d97aff":"var(--tx3)"},tx:gn,on:{click:function(){S.gf=a?"":gn;rWL()}}}));
+  });
+  ap(m,wgp);
+}
+if(S.gf){en=en.filter(function(e){var it=e[1].it;return it&&it.gn&&it.gn.indexOf(S.gf)!==-1})}
 if(!en.length){ap(m,h("div",{s:{textAlign:"center",padding:"80px 0",color:"var(--tx3)",fontStyle:"italic"},tx:"Watchlist vide"}));return}
 var groups={};en.forEach(function(e){var id=e[0],w=e[1];if(!w.it)return;var wn=C[w.it.tp]?C[w.it.tp].w||"Backlog":"Backlog";if(!groups[wn])groups[wn]=[];groups[wn].push(e)});
 Object.entries(groups).forEach(function(e){var label=e[0],items=e[1];
@@ -436,12 +479,10 @@ function setHeroImg(src){
   ap(bd,heroImg);
 }
 if(it.tp==="game"){
-  // Fetch RAWG screenshots for better backdrop
   var gid3=it.id.replace(/^g/,"");
-  fetch("https://api.rawg.io/api/games/"+gid3+"/screenshots?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(d){
-    var shots=(d.results||[]);
-    if(shots.length){setHeroImg(shots[0].image)}
-    else if(it.bd||it.po){setHeroImg(it.bd||it.po)}
+  fetch("https://api.rawg.io/api/games/"+gid3+"?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(gd){
+    var bgImg=gd.background_image_additional||gd.background_image;
+    if(bgImg){setHeroImg(bgImg)}else if(it.po){setHeroImg(it.po)}
   }).catch(function(){if(it.bd||it.po)setHeroImg(it.bd||it.po)});
 }else if(it.bd||it.po){setHeroImg(it.bd||it.po)}
 ap(bd,h("div",{s:{position:"absolute",inset:"0",background:"linear-gradient(transparent 40%,var(--bg) 100%)"}}));
@@ -451,7 +492,10 @@ var cnt=h("div",{s:{position:"relative",marginTop:"-80px",padding:"0 22px 22px",
 if(it.po){
 ap(cnt,h("img",{src:it.po,s:{width:"125px",height:"188px",objectFit:"cover",borderRadius:"5px",flexShrink:"0",boxShadow:"0 10px 36px rgba(0,0,0,.6)",border:"1px solid "+ct.n+"15"}}))};
 var info=h("div",{s:{paddingTop:"45px"}});
-ap(info,nt(ct.n,ct.i+" "+ct.l));
+var tagRow=h("div",{s:{display:"flex",gap:"5px",flexWrap:"wrap"}});
+ap(tagRow,nt(ct.n,ct.i+" "+ct.l));
+if(it.gn)it.gn.forEach(function(g){ap(tagRow,nt("#d97aff",g))});
+ap(info,tagRow);
 ap(info,h("h1",{s:{fontSize:"24px",fontWeight:"600",lineHeight:"1.2",marginTop:"5px",letterSpacing:"-.3px"},tx:it.ti}));
 var detDate=it.rd&&it.rd.length>=10?fmtDate(it.rd):it.yr||"—";
 var detSub=h("div",{s:{fontSize:"12px",color:"var(--tx3)",marginTop:"3px",display:"flex",alignItems:"center",gap:"6px"}});
@@ -539,8 +583,8 @@ if(it.tp==="game"){
     var platforms=(gd.platforms||[]);
     var stores=(gd.stores||[]);
     if(!platforms.length&&!stores.length)return;
-    var platLogos={"PC":"https://cdn.simpleicons.org/windows/00adef","PlayStation 5":"https://cdn.simpleicons.org/playstation/003791","PlayStation 4":"https://cdn.simpleicons.org/playstation/003791","PlayStation 3":"https://cdn.simpleicons.org/playstation/003791","Xbox Series S/X":"https://cdn.simpleicons.org/xbox/107C10","Xbox One":"https://cdn.simpleicons.org/xbox/107C10","Xbox 360":"https://cdn.simpleicons.org/xbox/107C10","Nintendo Switch":"https://cdn.simpleicons.org/nintendoswitch/E60012","macOS":"https://cdn.simpleicons.org/apple/fff","Linux":"https://cdn.simpleicons.org/linux/FCC624","iOS":"https://cdn.simpleicons.org/ios/fff","Android":"https://cdn.simpleicons.org/android/3DDC84"};
-    var platShort={"PlayStation 5":"PS5","PlayStation 4":"PS4","PlayStation 3":"PS3","Xbox Series S/X":"Xbox X|S","Xbox One":"Xbox One","Xbox 360":"Xbox 360","Nintendo Switch":"Switch"};
+    var platLogos={"PC":"https://cdn.simpleicons.org/windows/00adef","PlayStation 5":"https://cdn.simpleicons.org/playstation/003791","PlayStation 4":"https://cdn.simpleicons.org/playstation/003791","PlayStation 3":"https://cdn.simpleicons.org/playstation/003791","PlayStation 2":"https://cdn.simpleicons.org/playstation/003791","PS Vita":"https://cdn.simpleicons.org/playstation/003791","PSP":"https://cdn.simpleicons.org/playstation/003791","Xbox Series S/X":"https://cdn.simpleicons.org/xbox/107C10","Xbox One":"https://cdn.simpleicons.org/xbox/107C10","Xbox 360":"https://cdn.simpleicons.org/xbox/107C10","Xbox":"https://cdn.simpleicons.org/xbox/107C10","Nintendo Switch":"https://cdn.simpleicons.org/nintendoswitch/E60012","Nintendo 3DS":"https://cdn.simpleicons.org/nintendo/E60012","Nintendo DS":"https://cdn.simpleicons.org/nintendo/E60012","Wii U":"https://cdn.simpleicons.org/nintendo/E60012","Wii":"https://cdn.simpleicons.org/nintendo/E60012","GameCube":"https://cdn.simpleicons.org/nintendo/E60012","Game Boy Advance":"https://cdn.simpleicons.org/nintendo/E60012","macOS":"https://cdn.simpleicons.org/apple/fff","Linux":"https://cdn.simpleicons.org/linux/FCC624","iOS":"https://cdn.simpleicons.org/ios/fff","Android":"https://cdn.simpleicons.org/android/3DDC84","Web":"https://cdn.simpleicons.org/googlechrome/4285F4","Dreamcast":"https://cdn.simpleicons.org/sega/0060A8","Genesis":"https://cdn.simpleicons.org/sega/0060A8"};
+    var platShort={"PlayStation 5":"PS5","PlayStation 4":"PS4","PlayStation 3":"PS3","PlayStation 2":"PS2","PS Vita":"Vita","PSP":"PSP","Xbox Series S/X":"Xbox X|S","Xbox One":"Xbox One","Xbox 360":"Xbox 360","Nintendo Switch":"Switch","Nintendo 3DS":"3DS","Nintendo DS":"DS","Wii U":"Wii U","Game Boy Advance":"GBA","GameCube":"GameCube"};
     var storeLogos={"Steam":"https://cdn.simpleicons.org/steam/fff","PlayStation Store":"https://cdn.simpleicons.org/playstation/003791","Xbox Store":"https://cdn.simpleicons.org/xbox/107C10","Epic Games":"https://cdn.simpleicons.org/epicgames/fff","GOG":"https://cdn.simpleicons.org/gogdotcom/AB47BC","Nintendo Store":"https://cdn.simpleicons.org/nintendo/E60012","App Store":"https://cdn.simpleicons.org/appstore/0D96F6","Google Play":"https://cdn.simpleicons.org/googleplay/34A853","itch.io":"https://cdn.simpleicons.org/itchdotio/FA5C5C"};
     var gameRow=h("div",{s:{display:"flex",gap:"10px",flexWrap:"wrap"}});
     if(platforms.length){
@@ -605,24 +649,28 @@ ap(mediaBox,mediaLoading);
   else if(it.tp==="game"){
     mediaBox.style.display="block";
     mediaBox.innerHTML="";
-    // YouTube trailer first - use invidious API to find trailer
-    var ytQ=encodeURIComponent(it.ti+" official trailer game");
-    fetch("https://vid.puffyan.us/api/v1/search?q="+ytQ+"&type=video&sort_by=relevance").then(function(r){return r.json()}).then(function(vids){
-      if(vids&&vids.length&&vids[0].videoId){
+    var gid=it.id.replace(/^g/,"");
+    // Fetch game detail for clip YouTube ID
+    fetch("https://api.rawg.io/api/games/"+gid+"?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(gd){
+      if(gd.clip&&gd.clip.video){
         mediaBox.innerHTML="";
-        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed/"+vids[0].videoId,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px"}}));
-      }else{throw new Error("no yt")}
-    }).catch(function(){
-      // Fallback to RAWG clips/movies
-      var gid=it.id.replace(/^g/,"");
-      fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(d){
-        var clip=d.results&&d.results[0];
+        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed/"+gd.clip.video,frameborder:"0",allow:"accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture",allowfullscreen:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px"}}));
+        return;
+      }
+      if(gd.clip&&gd.clip.clips&&gd.clip.clips.full){
+        mediaBox.innerHTML="";
+        ap(mediaBox,h("video",{src:gd.clip.clips.full,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
+        return;
+      }
+      // Fallback: RAWG movies endpoint
+      return fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r2){return r2.json()}).then(function(md){
+        var clip=md.results&&md.results[0];
         if(clip&&clip.data&&clip.data.max){
           mediaBox.innerHTML="";
           ap(mediaBox,h("video",{src:clip.data.max,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
         }else{mediaBox.style.display="none"}
-      }).catch(function(){mediaBox.style.display="none"});
-    });
+      });
+    }).catch(function(){mediaBox.style.display="none"});
   }
   else{mediaBox.style.display="none"}
 })();
