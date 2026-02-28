@@ -152,7 +152,8 @@ if(it.ov||it.vt){
   if(it.ov)ap(tip,h("div",{s:{fontSize:"11px",color:"var(--tx2)",lineHeight:"1.4",maxHeight:"60px",overflow:"hidden"},tx:it.ov.length>150?it.ov.slice(0,150)+"...":it.ov}));
   ap(el,tip);
 }
-var po=h("div",{s:{position:"relative",paddingBottom:"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
+var isLandscape=it.tp==="game";
+var po=h("div",{s:{position:"relative",paddingBottom:isLandscape?"66%":"150%",borderRadius:"5px",overflow:"hidden",background:"var(--bg3)"}});
 if(it.po)ap(po,h("img",{src:it.po,loading:"lazy",s:{position:"absolute",inset:"0",width:"100%",height:"100%",objectFit:"cover"}}));
 else ap(po,h("div",{s:{position:"absolute",inset:"0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"28px",color:"var(--tx3)"},tx:ct.i}));
 ap(po,h("div",{s:{position:"absolute",bottom:"0",left:"0",right:"0",height:"35%",background:"linear-gradient(transparent,rgba(11,11,15,.85))"}}));
@@ -448,15 +449,32 @@ ap(bd,h("div",{s:{position:"absolute",inset:"0",background:"linear-gradient(tran
 ap(bd,h("div",{s:{position:"absolute",bottom:"0",left:"0",right:"0",height:"1px",background:"linear-gradient(90deg,transparent,"+ct.n+"45,transparent)"}}));
 ap(hero,bd);
 var cnt=h("div",{s:{position:"relative",marginTop:"-80px",padding:"0 22px 22px",display:"flex",gap:"22px"}});
-if(it.po)ap(cnt,h("img",{src:it.po,s:{width:"125px",height:"188px",objectFit:"cover",borderRadius:"5px",flexShrink:"0",boxShadow:"0 10px 36px rgba(0,0,0,.6)",border:"1px solid "+ct.n+"15"}}));
+if(it.po){var poW=it.tp==="game"?"180px":"125px";var poH=it.tp==="game"?"120px":"188px";
+ap(cnt,h("img",{src:it.po,s:{width:poW,height:poH,objectFit:"cover",borderRadius:"5px",flexShrink:"0",boxShadow:"0 10px 36px rgba(0,0,0,.6)",border:"1px solid "+ct.n+"15"}}))};
 var info=h("div",{s:{paddingTop:"45px"}});
 ap(info,nt(ct.n,ct.i+" "+ct.l));
 ap(info,h("h1",{s:{fontSize:"24px",fontWeight:"600",lineHeight:"1.2",marginTop:"5px",letterSpacing:"-.3px"},tx:it.ti}));
 var detDate=it.rd&&it.rd.length>=10?fmtDate(it.rd):it.yr||"—";
 var detSub=h("div",{s:{fontSize:"12px",color:"var(--tx3)",marginTop:"3px",display:"flex",alignItems:"center",gap:"6px"}});
-ap(detSub,h("span",{tx:detDate+(it.au?" · "+it.au:"")+(it.vt?" · ★ "+(typeof it.vt==="number"?it.vt.toFixed(1):it.vt):"")}));
-if(isUpcoming(it.rd))ap(detSub,h("span",{s:{fontSize:"9px",fontFamily:"var(--mono)",letterSpacing:"1px",padding:"2px 7px",borderRadius:"3px",background:"#ff9f1c18",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"À VENIR"}));
+var dateSpan=h("span",{tx:detDate+(it.au?" · "+it.au:"")+(it.vt?" · ★ "+(typeof it.vt==="number"?it.vt.toFixed(1):it.vt):"")});
+ap(detSub,dateSpan);
+var upBadge=null;
+if(isUpcoming(it.rd)){upBadge=h("span",{s:{fontSize:"9px",fontFamily:"var(--mono)",letterSpacing:"1px",padding:"2px 7px",borderRadius:"3px",background:"#ff9f1c18",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"À VENIR"});ap(detSub,upBadge)}
 ap(info,detSub);
+// Fetch FR-specific release date for films
+if(it.tp==="film"){
+  var fid=it.id.replace(/^f/,"");
+  fetch("https://api.themoviedb.org/3/movie/"+fid+"/release_dates?api_key="+TK).then(function(r){return r.json()}).then(function(d){
+    var frRel=(d.results||[]).find(function(r){return r.iso_3166_1==="FR"});
+    if(!frRel)return;
+    var theatrical=frRel.release_dates.find(function(r){return r.type===3})||frRel.release_dates[0];
+    if(!theatrical)return;
+    var frDate=theatrical.release_date.slice(0,10);
+    dateSpan.textContent=fmtDate(frDate)+(it.au?" · "+it.au:"")+(it.vt?" · ★ "+(typeof it.vt==="number"?it.vt.toFixed(1):it.vt):"");
+    if(upBadge){if(isUpcoming(frDate)){upBadge.style.display=""}else{upBadge.style.display="none"}}
+    else if(isUpcoming(frDate)){var ub=h("span",{s:{fontSize:"9px",fontFamily:"var(--mono)",letterSpacing:"1px",padding:"2px 7px",borderRadius:"3px",background:"#ff9f1c18",border:"1px solid #ff9f1c30",color:"#ff9f1c"},tx:"À VENIR"});detSub.appendChild(ub)}
+  }).catch(function(){});
+}
 if(it.ov&&!(D().cfg&&D().cfg.spoilerFree))ap(info,h("p",{s:{marginTop:"10px",fontSize:"13px",color:"var(--tx2)",lineHeight:"1.6",maxWidth:"460px"},tx:it.ov.length>260?it.ov.slice(0,260)+"...":it.ov}));
 var wlL=ct.w||"Watchlist";
 ap(info,h("button",{s:{marginTop:"12px",padding:"7px 16px",borderRadius:"4px",fontSize:"12px",fontWeight:"500",background:wl?ct.n+"12":"transparent",border:"1px solid "+(wl?ct.n+"30":"var(--bc)"),color:wl?ct.n:"var(--tx3)"},tx:wl?"✓ "+wlL:"+ "+wlL,on:{click:function(){if(wl)delete S.d.w[it.id];else S.d.w[it.id]={it:it,dt:new Date().toISOString()};SV();rDet();rSB()}}}));
@@ -515,6 +533,33 @@ if(it.tp==="anime"){
     ap(provBox,pnl);
   }).catch(function(){});
 }
+// Game platforms + stores
+if(it.tp==="game"){
+  var gidP=it.id.replace(/^g/,"");
+  fetch("https://api.rawg.io/api/games/"+gidP+"?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(gd){
+    var platforms=(gd.platforms||[]);
+    var stores=(gd.stores||[]);
+    if(!platforms.length&&!stores.length)return;
+    var platIcons={"PC":"🖥","PlayStation 5":"PS5","PlayStation 4":"PS4","PlayStation 3":"PS3","Xbox Series S/X":"XSX","Xbox One":"XB1","Xbox 360":"X360","Nintendo Switch":"NSW","Nintendo 3DS":"3DS","Wii U":"WiiU","iOS":"iOS","Android":"AND","macOS":"MAC","Linux":"LNX"};
+    var storeIcons={"Steam":"🎮 Steam","PlayStation Store":"🎮 PS Store","Xbox Store":"🎮 Xbox Store","Epic Games":"🎮 Epic","GOG":"🎮 GOG","Nintendo Store":"🎮 Nintendo","App Store":"📱 App Store","Google Play":"📱 Google Play","itch.io":"🎮 itch.io","Xbox 360 Store":"🎮 Xbox 360"};
+    if(platforms.length){
+      var platPnl=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
+      ap(platPnl,h("span",{cl:"mono9",tx:"PLATEFORMES"}));
+      platforms.forEach(function(p){var name=p.platform.name;var short=platIcons[name]||name.slice(0,4);
+        ap(platPnl,h("span",{s:{fontSize:"11px",padding:"4px 10px",borderRadius:"4px",background:"#0fff9510",border:"1px solid #0fff9520",color:"#0fff95",fontFamily:"var(--mono)",fontWeight:"500"},tx:short}));
+      });
+      ap(provBox,platPnl);
+    }
+    if(stores.length){
+      var storePnl=h("div",{s:{display:"flex",alignItems:"center",gap:"8px",flexWrap:"wrap",padding:"10px 14px",background:"var(--bg3)",borderRadius:"5px",border:"1px solid var(--bc)"}});
+      ap(storePnl,h("span",{cl:"mono9",tx:"DISPO"}));
+      stores.forEach(function(s){var name=s.store.name;var label=storeIcons[name]||name;var url=s.url||"#";
+        ap(storePnl,h("a",{href:url.indexOf("http")===0?url:"https://"+url,target:"_blank",s:{fontSize:"12px",padding:"5px 12px",borderRadius:"4px",background:ct.n+"0c",border:"1px solid "+ct.n+"25",color:ct.n,textDecoration:"none",fontWeight:"500"},tx:label}));
+      });
+      ap(provBox,storePnl);
+    }
+  }).catch(function(){});
+}
 ap(cnt,info);ap(hero,cnt);ap(m,hero);
 // Auto media section
 var mediaBox=h("div",{s:{marginBottom:"14px",borderRadius:"6px",overflow:"hidden",display:"none"}});
@@ -552,12 +597,26 @@ ap(mediaBox,mediaLoading);
   else if(it.tp==="game"){
     mediaBox.style.display="block";
     var gid=it.id.replace(/^g/,"");
-    fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(d){
-      mediaBox.innerHTML="";
-      var clip=d.results&&d.results[0];
-      if(clip&&clip.data&&clip.data.max){
-        ap(mediaBox,h("video",{src:clip.data.max,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
-      }else{mediaBox.style.display="none"}
+    fetch("https://api.rawg.io/api/games/"+gid+"?key=c542e67aec3a4340908f9de9e86038af").then(function(r){return r.json()}).then(function(gData){
+      // Check if RAWG has clip
+      if(gData.clip&&gData.clip.clip){
+        mediaBox.innerHTML="";
+        ap(mediaBox,h("video",{src:gData.clip.clip,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
+        return;
+      }
+      // Otherwise try movies endpoint
+      return fetch("https://api.rawg.io/api/games/"+gid+"/movies?key=c542e67aec3a4340908f9de9e86038af").then(function(r2){return r2.json()}).then(function(d){
+        var clip=d.results&&d.results[0];
+        if(clip&&clip.data&&clip.data.max){
+          mediaBox.innerHTML="";
+          ap(mediaBox,h("video",{src:clip.data.max,controls:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px",background:"#000"}}));
+          return;
+        }
+        // Fallback: embed YouTube search for game trailer
+        mediaBox.innerHTML="";
+        var ytQ=encodeURIComponent(it.ti+" official trailer");
+        ap(mediaBox,h("iframe",{src:"https://www.youtube.com/embed?listType=search&list="+ytQ,frameborder:"0",allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",allowfullscreen:"true",s:{width:"100%",aspectRatio:"16/9",display:"block",borderRadius:"6px"}}));
+      });
     }).catch(function(){mediaBox.style.display="none"});
   }
   else{mediaBox.style.display="none"}
